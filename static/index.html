@@ -1,887 +1,1935 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Pipeline 3D</title>
-<style>
-:root{
-  --bg:#0e1014; --bg2:#151921; --bg3:#1c212b; --line:#262c38;
-  --txt:#e7ebf2; --txt2:#96a0b3; --txt3:#5f6879;
-  --acc:#5b9dff; --acc2:#2d6fd6;
-  --ok:#38c172; --warn:#e8a33d; --fail:#ef5d5d; --info:#7d8798;
-  --r:10px;
-}
-/* Sin esto, el navegador pinta claros los controles nativos: la lista
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Pipeline 3D</title>
+    <style>
+      :root {
+        --bg: #0e1014;
+        --bg2: #151921;
+        --bg3: #1c212b;
+        --line: #262c38;
+        --txt: #e7ebf2;
+        --txt2: #96a0b3;
+        --txt3: #5f6879;
+        --acc: #5b9dff;
+        --acc2: #2d6fd6;
+        --ok: #38c172;
+        --warn: #e8a33d;
+        --fail: #ef5d5d;
+        --info: #7d8798;
+        --r: 10px;
+      }
+      /* Sin esto, el navegador pinta claros los controles nativos: la lista
    desplegable de un <select>, el calendario de un [type=date], las barras de
    scroll y el autocompletado. */
-:root{color-scheme:dark}
-*{box-sizing:border-box}
-html,body{margin:0;padding:0}
-body{
-  background:var(--bg); color:var(--txt);
-  font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;
-  -webkit-font-smoothing:antialiased;
-}
-button,input,select,textarea{font:inherit;color:inherit}
-a{color:var(--acc)}
-.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
+      :root {
+        color-scheme: dark;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        background: var(--bg);
+        color: var(--txt);
+        font:
+          14px/1.5 -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          Inter,
+          Roboto,
+          sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      button,
+      input,
+      select,
+      textarea {
+        font: inherit;
+        color: inherit;
+      }
+      a {
+        color: var(--acc);
+      }
+      .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 12px;
+      }
 
-/* ---------- layout ---------- */
-header{
-  position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:14px;
-  padding:12px 20px;background:rgba(14,16,20,.93);backdrop-filter:blur(12px);
-  border-bottom:1px solid var(--line);
-}
-header h1{font-size:15px;font-weight:650;margin:0;letter-spacing:-.01em}
-header .dot{width:8px;height:8px;border-radius:50%;background:var(--ok);flex:none}
-header .dot.off{background:var(--fail)}
-.spacer{flex:1}
-.wrap{max-width:1280px;margin:0 auto;padding:22px 20px 80px}
-.grid{display:grid;grid-template-columns:380px 1fr;gap:22px;align-items:start}
-/* sin min-width:0 la columna 1fr crece hasta el min-content del nombre mas
+      /* ---------- layout ---------- */
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 12px 20px;
+        background: rgba(14, 16, 20, 0.93);
+        backdrop-filter: blur(12px);
+        border-bottom: 1px solid var(--line);
+      }
+      header h1 {
+        font-size: 15px;
+        font-weight: 650;
+        margin: 0;
+        letter-spacing: -0.01em;
+      }
+      header .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--ok);
+        flex: none;
+      }
+      header .dot.off {
+        background: var(--fail);
+      }
+      .spacer {
+        flex: 1;
+      }
+      .wrap {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 22px 20px 80px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 380px 1fr;
+        gap: 22px;
+        align-items: start;
+      }
+      /* sin min-width:0 la columna 1fr crece hasta el min-content del nombre mas
    largo y aparece scroll horizontal en toda la pagina */
-.grid > *{min-width:0}
-@media(max-width:1000px){.grid{grid-template-columns:1fr}}
+      .grid > * {
+        min-width: 0;
+      }
+      @media (max-width: 1000px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
 
-.card{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r)}
-.card h2{
-  margin:0;padding:13px 16px;font-size:12px;font-weight:650;letter-spacing:.06em;
-  text-transform:uppercase;color:var(--txt2);border-bottom:1px solid var(--line);
-}
-.card .body{padding:16px}
+      .card {
+        background: var(--bg2);
+        border: 1px solid var(--line);
+        border-radius: var(--r);
+      }
+      .card h2 {
+        margin: 0;
+        padding: 13px 16px;
+        font-size: 12px;
+        font-weight: 650;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--txt2);
+        border-bottom: 1px solid var(--line);
+      }
+      .card .body {
+        padding: 16px;
+      }
 
-/* ---------- form ---------- */
-label{display:block;font-size:11px;font-weight:600;letter-spacing:.04em;
-  text-transform:uppercase;color:var(--txt3);margin:0 0 5px}
-.field{margin-bottom:14px}
-/* sin :not(), un <input> sin atributo type queda sin estilo (fondo blanco) */
-input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{
-  width:100%;padding:8px 10px;background:var(--bg);border:1px solid var(--line);
-  border-radius:7px;outline:none;transition:border-color .12s
-}
-input:focus,select:focus,textarea:focus{border-color:var(--acc)}
-::placeholder{color:var(--txt3);opacity:1}
+      /* ---------- form ---------- */
+      label {
+        display: block;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--txt3);
+        margin: 0 0 5px;
+      }
+      .field {
+        margin-bottom: 14px;
+      }
+      /* sin :not(), un <input> sin atributo type queda sin estilo (fondo blanco) */
+      input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+      select,
+      textarea {
+        width: 100%;
+        padding: 8px 10px;
+        background: var(--bg);
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        outline: none;
+        transition: border-color 0.12s;
+      }
+      input:focus,
+      select:focus,
+      textarea:focus {
+        border-color: var(--acc);
+      }
+      ::placeholder {
+        color: var(--txt3);
+        opacity: 1;
+      }
 
-/* El autocompletado ignora background-color: hay que taparlo con un inset
+      /* El autocompletado ignora background-color: hay que taparlo con un inset
    shadow y pintar el texto con -webkit-text-fill-color. */
-input:-webkit-autofill,
-input:-webkit-autofill:hover,
-input:-webkit-autofill:focus,
-input:-webkit-autofill:active,
-select:-webkit-autofill,
-textarea:-webkit-autofill{
-  -webkit-text-fill-color:var(--txt);
-  -webkit-box-shadow:0 0 0 1000px var(--bg) inset;
-  box-shadow:0 0 0 1000px var(--bg) inset;
-  caret-color:var(--txt);
-  transition:background-color 9999s ease-out 0s;
-}
+      input:-webkit-autofill,
+      input:-webkit-autofill:hover,
+      input:-webkit-autofill:focus,
+      input:-webkit-autofill:active,
+      select:-webkit-autofill,
+      textarea:-webkit-autofill {
+        -webkit-text-fill-color: var(--txt);
+        -webkit-box-shadow: 0 0 0 1000px var(--bg) inset;
+        box-shadow: 0 0 0 1000px var(--bg) inset;
+        caret-color: var(--txt);
+        transition: background-color 9999s ease-out 0s;
+      }
 
-/* Las opciones de un <select> se dibujan fuera de la pagina: van pintadas aparte. */
-select option,select optgroup{background:var(--bg2);color:var(--txt)}
+      /* Las opciones de un <select> se dibujan fuera de la pagina: van pintadas aparte. */
+      select option,
+      select optgroup {
+        background: var(--bg2);
+        color: var(--txt);
+      }
 
-/* El icono del calendario viene negro sobre fondo oscuro. */
-input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.75)}
-input[type=number]::-webkit-inner-spin-button{filter:invert(.6)}
-textarea{resize:vertical;min-height:58px}
-.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.chk{display:flex;align-items:flex-start;gap:8px;margin:7px 0;cursor:pointer}
-.chk input{margin:2px 0 0;accent-color:var(--acc);flex:none}
-.chk span{font-size:13px;color:var(--txt)}
-.chk small{display:block;color:var(--txt3);font-size:11.5px;line-height:1.35}
+      /* El icono del calendario viene negro sobre fondo oscuro. */
+      input[type="date"]::-webkit-calendar-picker-indicator {
+        filter: invert(0.75);
+      }
+      input[type="number"]::-webkit-inner-spin-button {
+        filter: invert(0.6);
+      }
+      textarea {
+        resize: vertical;
+        min-height: 58px;
+      }
+      .row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .chk {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        margin: 7px 0;
+        cursor: pointer;
+      }
+      .chk input {
+        margin: 2px 0 0;
+        accent-color: var(--acc);
+        flex: none;
+      }
+      .chk span {
+        font-size: 13px;
+        color: var(--txt);
+      }
+      .chk small {
+        display: block;
+        color: var(--txt3);
+        font-size: 11.5px;
+        line-height: 1.35;
+      }
 
-.btn{
-  padding:9px 16px;background:var(--acc);color:#fff;border:1px solid transparent;
-  border-radius:7px;font-weight:600;cursor:pointer;transition:.12s
-}
-.btn:hover{background:var(--acc2)}
-.btn:disabled{opacity:.45;cursor:not-allowed}
-.btn.ghost{background:transparent;border-color:var(--line);color:var(--txt2)}
-.btn.ghost:hover{background:var(--bg3);color:var(--txt)}
-.btn.sm{padding:5px 11px;font-size:12.5px}
-.btn.danger:hover{background:#3a1e22;border-color:#5f2b30;color:#ef8f8f}
+      .btn {
+        padding: 9px 16px;
+        background: var(--acc);
+        color: #fff;
+        border: 1px solid transparent;
+        border-radius: 7px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: 0.12s;
+      }
+      .btn:hover {
+        background: var(--acc2);
+      }
+      .btn:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      .btn.ghost {
+        background: transparent;
+        border-color: var(--line);
+        color: var(--txt2);
+      }
+      .btn.ghost:hover {
+        background: var(--bg3);
+        color: var(--txt);
+      }
+      .btn.sm {
+        padding: 5px 11px;
+        font-size: 12.5px;
+      }
+      .btn.danger:hover {
+        background: #3a1e22;
+        border-color: #5f2b30;
+        color: #ef8f8f;
+      }
 
-/* ---------- dropzone ---------- */
-#drop{
-  border:1.5px dashed var(--line);border-radius:9px;padding:24px 16px;text-align:center;
-  cursor:pointer;transition:.14s;background:var(--bg)
-}
-#drop:hover,#drop.over{border-color:var(--acc);background:#121a26}
-#drop .big{font-size:26px;line-height:1;margin-bottom:7px;opacity:.65}
-#drop p{margin:0;color:var(--txt2);font-size:13px}
-#drop small{color:var(--txt3);font-size:11.5px}
-#thumbs{display:flex;flex-wrap:wrap;gap:7px;margin-top:11px}
-.th{position:relative;width:62px;height:62px;border-radius:7px;overflow:hidden;
-  border:1px solid var(--line);background:var(--bg3)}
-.th img{width:100%;height:100%;object-fit:cover;display:block}
-.th .x{position:absolute;top:2px;right:2px;width:17px;height:17px;border-radius:50%;
-  background:rgba(0,0,0,.72);color:#fff;font-size:11px;line-height:17px;text-align:center;cursor:pointer}
-.th .n{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.7);
-  font-size:9px;text-align:center;padding:1px}
-.th.file{display:flex;align-items:center;justify-content:center;font-size:9px;
-  color:var(--txt2);text-align:center;padding:4px;word-break:break-all}
+      /* ---------- dropzone ---------- */
+      #drop {
+        border: 1.5px dashed var(--line);
+        border-radius: 9px;
+        padding: 24px 16px;
+        text-align: center;
+        cursor: pointer;
+        transition: 0.14s;
+        background: var(--bg);
+      }
+      #drop:hover,
+      #drop.over {
+        border-color: var(--acc);
+        background: #121a26;
+      }
+      #drop .big {
+        font-size: 26px;
+        line-height: 1;
+        margin-bottom: 7px;
+        opacity: 0.65;
+      }
+      #drop p {
+        margin: 0;
+        color: var(--txt2);
+        font-size: 13px;
+      }
+      #drop small {
+        color: var(--txt3);
+        font-size: 11.5px;
+      }
+      #thumbs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+        margin-top: 11px;
+      }
+      .th {
+        position: relative;
+        width: 62px;
+        height: 62px;
+        border-radius: 7px;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        background: var(--bg3);
+      }
+      .th img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+      .th .x {
+        position: absolute;
+        top: 2px;
+        right: 2px;
+        width: 17px;
+        height: 17px;
+        border-radius: 50%;
+        background: rgba(0, 0, 0, 0.72);
+        color: #fff;
+        font-size: 11px;
+        line-height: 17px;
+        text-align: center;
+        cursor: pointer;
+      }
+      .th .n {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: rgba(0, 0, 0, 0.7);
+        font-size: 9px;
+        text-align: center;
+        padding: 1px;
+      }
+      .th.file {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 9px;
+        color: var(--txt2);
+        text-align: center;
+        padding: 4px;
+        word-break: break-all;
+      }
 
-details.adv{margin-top:6px;border-top:1px solid var(--line);padding-top:12px}
-details.adv summary{cursor:pointer;color:var(--txt2);font-size:12px;
-  font-weight:600;letter-spacing:.04em;text-transform:uppercase;list-style:none;user-select:none}
-details.adv summary::-webkit-details-marker{display:none}
-details.adv summary:before{content:"▸ ";color:var(--txt3)}
-details.adv[open] summary:before{content:"▾ "}
-details.adv .in{padding-top:13px}
+      details.adv {
+        margin-top: 6px;
+        border-top: 1px solid var(--line);
+        padding-top: 12px;
+      }
+      details.adv summary {
+        cursor: pointer;
+        color: var(--txt2);
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        list-style: none;
+        user-select: none;
+      }
+      details.adv summary::-webkit-details-marker {
+        display: none;
+      }
+      details.adv summary:before {
+        content: "▸ ";
+        color: var(--txt3);
+      }
+      details.adv[open] summary:before {
+        content: "▾ ";
+      }
+      details.adv .in {
+        padding-top: 13px;
+      }
 
-/* ---------- products ---------- */
-.toolbar{display:flex;align-items:center;gap:10px;margin-bottom:13px}
-.toolbar h2{margin:0;font-size:16px;font-weight:650}
-.count{color:var(--txt3);font-size:13px}
+      /* ---------- products ---------- */
+      .toolbar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 13px;
+      }
+      .toolbar h2 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 650;
+      }
+      .count {
+        color: var(--txt3);
+        font-size: 13px;
+      }
 
-.item{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);
-  margin-bottom:12px;overflow:hidden}
-.item .head{display:flex;align-items:center;gap:12px;padding:13px 15px;cursor:pointer}
-.item .head:hover{background:var(--bg3)}
-.thumb{width:52px;height:52px;border-radius:7px;background:var(--bg3);flex:none;
-  border:1px solid var(--line);overflow:hidden;display:flex;align-items:center;justify-content:center}
-.thumb img{width:100%;height:100%;object-fit:cover}
-.thumb span{font-size:20px;opacity:.4}
-.meta{flex:1;min-width:0}
-.meta .nm{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.meta .sub{font-size:12px;color:var(--txt3);margin-top:2px}
+      .item {
+        background: var(--bg2);
+        border: 1px solid var(--line);
+        border-radius: var(--r);
+        margin-bottom: 12px;
+        overflow: hidden;
+      }
+      .item .head {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 13px 15px;
+        cursor: pointer;
+      }
+      .item .head:hover {
+        background: var(--bg3);
+      }
+      .thumb {
+        width: 52px;
+        height: 52px;
+        border-radius: 7px;
+        background: var(--bg3);
+        flex: none;
+        border: 1px solid var(--line);
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .thumb img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .thumb span {
+        font-size: 20px;
+        opacity: 0.4;
+      }
+      .meta {
+        flex: 1;
+        min-width: 0;
+      }
+      .meta .nm {
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .meta .sub {
+        font-size: 12px;
+        color: var(--txt3);
+        margin-top: 2px;
+      }
 
-.badge{padding:3px 9px;border-radius:20px;font-size:11px;font-weight:650;
-  letter-spacing:.03em;white-space:nowrap;flex:none}
-.b-QUEUED{background:#242a36;color:var(--txt2)}
-.b-GENERATING,.b-DOWNLOADING,.b-CONDITIONING{background:#1b3050;color:#8bb8ff}
-.b-DONE{background:#123321;color:#5fe39b}
-.b-QA_FAILED{background:#3d2a12;color:#f0bf76}
-.b-FAILED{background:#3a1a1d;color:#ff9494}
+      .badge {
+        padding: 3px 9px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 650;
+        letter-spacing: 0.03em;
+        white-space: nowrap;
+        flex: none;
+      }
+      .b-QUEUED {
+        background: #242a36;
+        color: var(--txt2);
+      }
+      .b-GENERATING,
+      .b-DOWNLOADING,
+      .b-CONDITIONING {
+        background: #1b3050;
+        color: #8bb8ff;
+      }
+      .b-DONE {
+        background: #123321;
+        color: #5fe39b;
+      }
+      .b-QA_FAILED {
+        background: #3d2a12;
+        color: #f0bf76;
+      }
+      .b-FAILED {
+        background: #3a1a1d;
+        color: #ff9494;
+      }
 
-.bar{height:3px;background:var(--bg3);overflow:hidden}
-.bar i{display:block;height:100%;background:var(--acc);transition:width .4s}
-.bar.ind i{width:35%;animation:sl 1.3s ease-in-out infinite}
-@keyframes sl{0%{margin-left:-35%}100%{margin-left:100%}}
+      .bar {
+        height: 3px;
+        background: var(--bg3);
+        overflow: hidden;
+      }
+      .bar i {
+        display: block;
+        height: 100%;
+        background: var(--acc);
+        transition: width 0.4s;
+      }
+      .bar.ind i {
+        width: 35%;
+        animation: sl 1.3s ease-in-out infinite;
+      }
+      @keyframes sl {
+        0% {
+          margin-left: -35%;
+        }
+        100% {
+          margin-left: 100%;
+        }
+      }
 
-.detail{border-top:1px solid var(--line);padding:16px;display:none}
-.item.open .detail{display:block}
+      .detail {
+        border-top: 1px solid var(--line);
+        padding: 16px;
+        display: none;
+      }
+      .item.open .detail {
+        display: block;
+      }
 
-.checks{display:flex;flex-direction:column;gap:4px;margin-bottom:16px}
-.chkrow{display:flex;gap:9px;align-items:flex-start;padding:6px 9px;border-radius:6px;
-  background:var(--bg);font-size:13px}
-.chkrow b{flex:none;width:52px;font-size:10px;font-weight:700;letter-spacing:.05em;
-  padding-top:2px;text-transform:uppercase}
-.l-pass b{color:var(--ok)} .l-warn b{color:var(--warn)}
-.l-fail b{color:var(--fail)} .l-info b{color:var(--info)}
-.l-fail{background:#2a1618} .l-warn{background:#2a2114}
+      .checks {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        margin-bottom: 16px;
+      }
+      .chkrow {
+        display: flex;
+        gap: 9px;
+        align-items: flex-start;
+        padding: 6px 9px;
+        border-radius: 6px;
+        background: var(--bg);
+        font-size: 13px;
+      }
+      .chkrow b {
+        flex: none;
+        width: 52px;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        padding-top: 2px;
+        text-transform: uppercase;
+      }
+      .l-pass b {
+        color: var(--ok);
+      }
+      .l-warn b {
+        color: var(--warn);
+      }
+      .l-fail b {
+        color: var(--fail);
+      }
+      .l-info b {
+        color: var(--info);
+      }
+      .l-fail {
+        background: #2a1618;
+      }
+      .l-warn {
+        background: #2a2114;
+      }
 
-.shots{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:8px;margin-bottom:16px}
-.shots figure{margin:0}
-.shots img{width:100%;border-radius:7px;border:1px solid var(--line);
-  background:var(--bg3);display:block;cursor:zoom-in}
-.shots figcaption{font-size:10.5px;color:var(--txt3);text-align:center;margin-top:3px;
-  text-transform:uppercase;letter-spacing:.05em}
+      .shots {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+        gap: 8px;
+        margin-bottom: 16px;
+      }
+      .shots figure {
+        margin: 0;
+      }
+      .shots img {
+        width: 100%;
+        border-radius: 7px;
+        border: 1px solid var(--line);
+        background: var(--bg3);
+        display: block;
+        cursor: zoom-in;
+      }
+      .shots figcaption {
+        font-size: 10.5px;
+        color: var(--txt3);
+        text-align: center;
+        margin-top: 3px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
 
-table.m{width:100%;border-collapse:collapse;font-size:12.5px;margin-bottom:16px}
-table.m th{text-align:left;color:var(--txt3);font-weight:600;font-size:10.5px;
-  text-transform:uppercase;letter-spacing:.05em;padding:5px 9px;border-bottom:1px solid var(--line)}
-table.m td{padding:5px 9px;border-bottom:1px solid #1d222c}
-table.m td:first-child{color:var(--txt2)}
-table.m td.n{text-align:right;font-family:ui-monospace,Menlo,monospace}
-.arrow{color:var(--txt3);padding:0 4px}
+      table.m {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12.5px;
+        margin-bottom: 16px;
+      }
+      table.m th {
+        text-align: left;
+        color: var(--txt3);
+        font-weight: 600;
+        font-size: 10.5px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        padding: 5px 9px;
+        border-bottom: 1px solid var(--line);
+      }
+      table.m td {
+        padding: 5px 9px;
+        border-bottom: 1px solid #1d222c;
+      }
+      table.m td:first-child {
+        color: var(--txt2);
+      }
+      table.m td.n {
+        text-align: right;
+        font-family: ui-monospace, Menlo, monospace;
+      }
+      .arrow {
+        color: var(--txt3);
+        padding: 0 4px;
+      }
 
-.acts{display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin-bottom:14px}
-ul.did{margin:0 0 16px;padding-left:18px;color:var(--txt2);font-size:12.5px}
-ul.did li{margin:3px 0}
-pre.log{background:#0a0c10;border:1px solid var(--line);border-radius:7px;padding:11px;
-  max-height:240px;overflow:auto;font-size:11.5px;color:var(--txt2);margin:0;white-space:pre-wrap}
-.err{background:#2a1618;border:1px solid #4a2428;border-radius:7px;padding:10px 12px;
-  color:#ffadad;font-size:12.5px;margin-bottom:13px}
-.bcols{display:grid;grid-template-columns:1fr 1fr;gap:26px;align-items:start}
-.bcols > div{min-width:0}
-@media(max-width:900px){.bcols{grid-template-columns:1fr}}
-.fieldlist{display:flex;flex-direction:column;gap:7px;margin-top:6px}
-.fitem{background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:9px}
-.fitem .top{display:flex;gap:7px;align-items:center}
-/* width:100% global + flex = desborde: hay que soltar el ancho y permitir encoger */
-.fitem input,.fitem select{padding:6px 8px;font-size:13px;width:auto;min-width:0}
-.fitem .lbl{flex:1;min-width:0}
-.fitem .ty{width:104px;flex:none}
-.fitem .rm{flex:none;width:26px;height:26px;border-radius:6px;border:1px solid var(--line);
-  background:transparent;color:var(--txt3);cursor:pointer;line-height:1}
-.fitem .rm:hover{color:#ef8f8f;border-color:#5f2b30}
-.fitem .sub{display:flex;gap:7px;align-items:center;margin-top:7px}
-.fitem .sub input{flex:1}
-.fitem .sub input{flex:1;min-width:0}
-.fitem label.chk{margin:0;white-space:nowrap;text-transform:none;letter-spacing:0;
-  font-size:12px;color:var(--txt2);font-weight:400}
-.fitem label.chk span{font-size:12px}
-.brow{display:flex;align-items:center;gap:10px;padding:9px 11px;background:var(--bg);
-  border:1px solid var(--line);border-radius:7px;cursor:pointer}
-.brow:hover{border-color:var(--acc)}
-.brow b{flex:1;font-weight:600}
-.brow span{color:var(--txt3);font-size:12px}
-.frow{display:flex;gap:8px;align-items:center;margin-top:9px}
-.mini{display:block;font-size:11px;color:var(--txt3);text-transform:uppercase;
-  letter-spacing:.04em;font-weight:600;margin:9px 0 4px}
-.metafield{margin-bottom:9px}
-.metafield .mlabel{font-size:11.5px;color:var(--txt2);margin-bottom:3px}
-.metafield .mlabel i{color:var(--fail);font-style:normal}
-.metafield .tag{font-size:9.5px;color:var(--txt3);border:1px solid var(--line);
-  border-radius:4px;padding:0 4px;margin-left:5px;text-transform:uppercase}
-table.meta{width:100%;border-collapse:collapse;font-size:12.5px;margin-bottom:16px}
-table.meta td{padding:5px 9px;border-bottom:1px solid #1d222c}
-table.meta td:first-child{color:var(--txt2);width:40%}
-.keystate{padding:8px 11px;border-radius:7px;background:var(--bg);border:1px solid var(--line);
-  font-size:13px;font-family:ui-monospace,Menlo,monospace}
-.keystate.ok{color:#7ee2a8;border-color:#1e4430}
-.keystate.bad{color:#ffa1a1;border-color:#4a2428}
-.retex{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px;margin-bottom:14px}
-.empty{text-align:center;padding:60px 20px;color:var(--txt3)}
-.empty .big{font-size:38px;opacity:.25;margin-bottom:10px}
+      .acts {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+        align-items: center;
+        margin-bottom: 14px;
+      }
+      ul.did {
+        margin: 0 0 16px;
+        padding-left: 18px;
+        color: var(--txt2);
+        font-size: 12.5px;
+      }
+      ul.did li {
+        margin: 3px 0;
+      }
+      pre.log {
+        background: #0a0c10;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        padding: 11px;
+        max-height: 240px;
+        overflow: auto;
+        font-size: 11.5px;
+        color: var(--txt2);
+        margin: 0;
+        white-space: pre-wrap;
+      }
+      .err {
+        background: #2a1618;
+        border: 1px solid #4a2428;
+        border-radius: 7px;
+        padding: 10px 12px;
+        color: #ffadad;
+        font-size: 12.5px;
+        margin-bottom: 13px;
+      }
+      /* --- navegacion entre pantallas --- */
+.nav{display:flex;gap:4px;margin-left:8px}
+.nav a{padding:5px 12px;border-radius:7px;color:var(--txt3);text-decoration:none;
+  font-size:13px;font-weight:600;transition:.12s}
+.nav a:hover{color:var(--txt);background:var(--bg3)}
+.nav a.on{color:var(--txt);background:var(--bg3);box-shadow:inset 0 0 0 1px var(--line)}
+.view[hidden]{display:none}
+.narrow{max-width:620px}
+#hstat.warn{color:var(--warn)}
 
-#lb{position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:100;display:none;
-  align-items:center;justify-content:center;cursor:zoom-out;padding:30px}
-#lb.on{display:flex}
-#lb img{max-width:100%;max-height:100%;border-radius:8px}
+/* --- pantalla de marcas --- */
+.blayout{display:grid;grid-template-columns:270px 1fr;gap:22px;align-items:start}
+@media(max-width:900px){.blayout{grid-template-columns:1fr}}
+.blayout > *{min-width:0}
+.side{display:flex;flex-direction:column;gap:3px}
+.sitem{padding:9px 11px;border-radius:7px;cursor:pointer;border:1px solid transparent}
+.sitem:hover{background:var(--bg3)}
+.sitem.on{background:var(--bg3);border-color:var(--line)}
+.sitem b{display:block;font-weight:600;font-size:13.5px}
+.sitem span{display:block;color:var(--txt3);font-size:11.5px;margin-top:2px}
+.sdiv{font-size:10.5px;font-weight:650;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--txt3);padding:14px 11px 5px;border-top:1px solid var(--line);margin-top:8px}
+      .fieldlist {
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+        margin-top: 6px;
+      }
+      .fitem {
+        background: var(--bg);
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        padding: 9px;
+      }
+      .fitem .top {
+        display: flex;
+        gap: 7px;
+        align-items: center;
+      }
+      /* width:100% global + flex = desborde: hay que soltar el ancho y permitir encoger */
+      .fitem input,
+      .fitem select {
+        padding: 6px 8px;
+        font-size: 13px;
+        width: auto;
+        min-width: 0;
+      }
+      .fitem .lbl {
+        flex: 1;
+        min-width: 0;
+      }
+      .fitem .ty {
+        width: 104px;
+        flex: none;
+      }
+      .fitem .rm {
+        flex: none;
+        width: 26px;
+        height: 26px;
+        border-radius: 6px;
+        border: 1px solid var(--line);
+        background: transparent;
+        color: var(--txt3);
+        cursor: pointer;
+        line-height: 1;
+      }
+      .fitem .rm:hover {
+        color: #ef8f8f;
+        border-color: #5f2b30;
+      }
+      .fitem .sub {
+        display: flex;
+        gap: 7px;
+        align-items: center;
+        margin-top: 7px;
+      }
+      .fitem .sub input {
+        flex: 1;
+      }
+      .fitem .sub input {
+        flex: 1;
+        min-width: 0;
+      }
+      .fitem label.chk {
+        margin: 0;
+        white-space: nowrap;
+        text-transform: none;
+        letter-spacing: 0;
+        font-size: 12px;
+        color: var(--txt2);
+        font-weight: 400;
+      }
+      .fitem label.chk span {
+        font-size: 12px;
+      }
+      .brow {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 11px;
+        background: var(--bg);
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        cursor: pointer;
+      }
+      .brow:hover {
+        border-color: var(--acc);
+      }
+      .brow b {
+        flex: 1;
+        font-weight: 600;
+      }
+      .brow span {
+        color: var(--txt3);
+        font-size: 12px;
+      }
+      .frow {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        margin-top: 9px;
+      }
+      .mini {
+        display: block;
+        font-size: 11px;
+        color: var(--txt3);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        font-weight: 600;
+        margin: 9px 0 4px;
+      }
+      .metafield {
+        margin-bottom: 9px;
+      }
+      .metafield .mlabel {
+        font-size: 11.5px;
+        color: var(--txt2);
+        margin-bottom: 3px;
+      }
+      .metafield .mlabel i {
+        color: var(--fail);
+        font-style: normal;
+      }
+      .metafield .tag {
+        font-size: 9.5px;
+        color: var(--txt3);
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        padding: 0 4px;
+        margin-left: 5px;
+        text-transform: uppercase;
+      }
+      table.meta {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12.5px;
+        margin-bottom: 16px;
+      }
+      table.meta td {
+        padding: 5px 9px;
+        border-bottom: 1px solid #1d222c;
+      }
+      table.meta td:first-child {
+        color: var(--txt2);
+        width: 40%;
+      }
+      .keystate {
+        padding: 8px 11px;
+        border-radius: 7px;
+        background: var(--bg);
+        border: 1px solid var(--line);
+        font-size: 13px;
+        font-family: ui-monospace, Menlo, monospace;
+      }
+      .keystate.ok {
+        color: #7ee2a8;
+        border-color: #1e4430;
+      }
+      .keystate.bad {
+        color: #ffa1a1;
+        border-color: #4a2428;
+      }
+      .retex {
+        background: var(--bg);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 14px;
+      }
+      .empty {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--txt3);
+      }
+      .empty .big {
+        font-size: 38px;
+        opacity: 0.25;
+        margin-bottom: 10px;
+      }
 
-.note{font-size:11.5px;color:var(--txt3);line-height:1.45;margin-top:9px;
-  padding:9px 11px;background:var(--bg);border-left:2px solid var(--line);border-radius:0 6px 6px 0}
-#toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(90px);
-  background:var(--bg3);border:1px solid var(--line);padding:10px 18px;border-radius:8px;
-  z-index:200;transition:transform .28s;box-shadow:0 8px 30px rgba(0,0,0,.5);max-width:90vw}
-#toast.on{transform:translateX(-50%) translateY(0)}
-</style>
-</head>
-<body>
+      #lb {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.9);
+        z-index: 100;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        cursor: zoom-out;
+        padding: 30px;
+      }
+      #lb.on {
+        display: flex;
+      }
+      #lb img {
+        max-width: 100%;
+        max-height: 100%;
+        border-radius: 8px;
+      }
 
-<header>
-  <span class="dot" id="hdot"></span>
-  <h1>Pipeline 3D</h1>
-  <span class="count mono" id="hstat"></span>
-  <span class="spacer"></span>
-  <button class="btn ghost sm" onclick="togglePanel('brandcard')">Marcas</button>
-  <button class="btn ghost sm" onclick="togglePanel('cfgcard')">Ajustes</button>
-</header>
+      .note {
+        font-size: 11.5px;
+        color: var(--txt3);
+        line-height: 1.45;
+        margin-top: 9px;
+        padding: 9px 11px;
+        background: var(--bg);
+        border-left: 2px solid var(--line);
+        border-radius: 0 6px 6px 0;
+      }
+      #toast {
+        position: fixed;
+        bottom: 22px;
+        left: 50%;
+        transform: translateX(-50%) translateY(90px);
+        background: var(--bg3);
+        border: 1px solid var(--line);
+        padding: 10px 18px;
+        border-radius: 8px;
+        z-index: 200;
+        transition: transform 0.28s;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+        max-width: 90vw;
+      }
+      #toast.on {
+        transform: translateX(-50%) translateY(0);
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <span class="dot" id="hdot"></span>
+      <h1>Pipeline 3D</h1>
+      <span class="count mono" id="hstat"></span>
+      <nav class="nav">
+        <a href="#/productos" id="nav-productos">Productos</a>
+        <a href="#/marcas" id="nav-marcas">Marcas</a>
+        <a href="#/ajustes" id="nav-ajustes">Ajustes</a>
+      </nav>
+      <span class="spacer"></span>
+    </header>
 
-<div class="wrap">
-
-  <div class="card" id="cfgcard" style="display:none;margin-bottom:22px">
-    <h2>Ajustes</h2>
-    <div class="body">
-      <div class="field">
-        <label>API key del generador 3D</label>
-        <div class="keystate" id="cfg_keystate">—</div>
-        <div class="note">La key se lee <b>solo</b> de la variable de entorno <code>MESHY_API_KEY</code>,
-        que el servidor toma del archivo <code>.env</code> al arrancar. No se puede cargar ni ver desde
-        esta interfaz, y no se guarda en <code>data/</code>. Para cambiarla, editá <code>.env</code> y
-        reiniciá el servidor.</div>
-      </div>
-      <div class="field">
-        <label>Ruta de Blender</label>
-        <input type="text" id="cfg_blender" placeholder="/Applications/Blender.app/Contents/MacOS/Blender">
-      </div>
-      <div class="field">
-        <label>Carpeta de Unity (opcional)</label>
-        <input type="text" id="cfg_unity" placeholder="/ruta/a/TuProyecto/Assets/Models">
-        <div class="note">Si la completás, cada modelo que pase el QA en verde se copia ahí automáticamente.</div>
-      </div>
-      <button class="btn" onclick="saveCfg()">Guardar</button>
-    </div>
-  </div>
-
-  <div class="card" id="brandcard" style="display:none;margin-bottom:22px">
-    <h2>Marcas y metadatos</h2>
-    <div class="body">
-      <div class="bcols">
-        <div>
-          <label>Campos base <span style="text-transform:none;color:var(--txt3)">(todas las marcas)</span></label>
-          <div id="basefields" class="fieldlist"></div>
-          <div class="frow">
-            <button class="btn ghost sm" onclick="addField('base')">+ Campo base</button>
-            <button class="btn sm" onclick="saveBase()">Guardar campos base</button>
-          </div>
-          <div class="note">Se piden en todos los productos, sin importar la marca.</div>
-
-          <label style="margin-top:20px">Marcas</label>
-          <div id="brandlist" class="fieldlist"></div>
-          <button class="btn ghost sm" style="margin-top:9px" onclick="editBrand(null)">+ Nueva marca</button>
+    <div class="wrap">
+      <!-- ================= pantalla: ajustes ================= -->
+      <section id="view-ajustes" class="view" hidden>
+        <div class="toolbar">
+          <h2>Ajustes</h2>
+          <span class="count" id="cfgstate"></span>
         </div>
 
-        <div id="brandform" style="display:none">
-          <label>Nombre de la marca</label>
-          <input type="text" id="b_name" placeholder="Vinora">
-
-          <label style="margin-top:14px">Campos propios de esta marca</label>
-          <div id="brandfields" class="fieldlist"></div>
-          <button class="btn ghost sm" style="margin-top:8px" onclick="addField('brand')">+ Campo</button>
-          <div class="note">Se suman a los campos base. No pueden repetir sus claves.</div>
-
-          <label style="margin-top:18px">Valores por defecto del pipeline</label>
-          <div class="row">
-            <div><span class="mini">Altura real (m)</span>
-              <input type="number" id="b_height" step="0.01" min="0" placeholder="0.85"></div>
-            <div><span class="mini">Budget de tris</span>
-              <input type="number" id="b_budget" step="1000" min="100" placeholder="15000"></div>
-          </div>
-          <div class="row">
-            <div><span class="mini">Topología</span>
-              <select id="b_topo"><option value="">—</option><option value="quad">quad</option>
-              <option value="triangle">triangle</option></select></div>
-            <div><span class="mini">Textura</span>
-              <select id="b_texres"><option value="">—</option><option value="2k">2k</option>
-              <option value="4k">4k</option><option value="8k">8k</option></select></div>
-          </div>
-          <span class="mini">Prompt de textura por defecto</span>
-          <textarea id="b_texprompt" placeholder="tapizado de lino, patas de roble macizo"></textarea>
-          <div class="note">Al elegir esta marca, el formulario se completa con estos valores.</div>
-
-          <div class="frow" style="margin-top:14px">
-            <button class="btn" onclick="saveBrand()">Guardar marca</button>
-            <button class="btn ghost sm" onclick="closeBrandForm()">Cancelar</button>
-            <span class="spacer"></span>
-            <button class="btn ghost sm danger" id="b_del" onclick="delBrand()">Borrar</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="grid">
-
-    <!-- ================= panel de carga ================= -->
-    <div class="card">
-      <h2>Nuevo producto</h2>
-      <div class="body">
-
-        <div class="field">
-          <label>Nombre del producto</label>
-          <input type="text" id="f_name" placeholder="Silla Cloudrest">
-        </div>
-
-        <div class="field">
-          <label>Marca</label>
-          <select id="f_brand" onchange="onBrandChange()"></select>
-        </div>
-
-        <div class="field" id="metawrap">
-          <label>Metadatos</label>
-          <div id="metafields"></div>
-        </div>
-
-        <div class="field">
-          <label>Fotos del producto</label>
-          <div id="drop">
-            <div class="big">📷</div>
-            <p><b>Arrastrá 1 a 4 fotos</b> o hacé clic</p>
-            <small>La 1ª es la vista frontal · también acepta un .glb existente</small>
-          </div>
-          <input type="file" id="f_files" multiple accept=".jpg,.jpeg,.png,.glb,.gltf" hidden>
-          <div id="thumbs"></div>
-          <div class="note" id="modehint">
-            Con <b>2 a 4 vistas</b> (frente, lado, atrás) el generador deja de inventar las caras que no ve:
-            es la única forma real de eliminar la asimetría. Con 1 sola foto se activan además
-            <code>auto_size</code> y <code>origin_at</code>, que no existen en el endpoint multi-imagen.
-          </div>
-        </div>
-
-        <div class="row">
+        <div class="narrow">
+          <div class="card">
+            <h2>Entorno</h2>
+            <div class="body">
           <div class="field">
-            <label>Altura real (m)</label>
-            <input type="number" id="f_height" value="0.85" step="0.01" min="0">
+            <label>API key del generador 3D</label>
+            <div class="keystate" id="cfg_keystate">—</div>
+            <div class="note">
+              La key se lee <b>solo</b> de la variable de entorno
+              <code>MESHY_API_KEY</code>, que el servidor toma del archivo
+              <code>.env</code> al arrancar. No se puede cargar ni ver desde
+              esta interfaz, y no se guarda en <code>data/</code>. Para
+              cambiarla, editá <code>.env</code> y reiniciá el servidor.
+            </div>
           </div>
           <div class="field">
-            <label>Budget de tris</label>
-            <input type="number" id="f_budget" value="15000" step="1000" min="100">
+            <label>Ruta de Blender</label>
+            <input
+              type="text"
+              id="cfg_blender"
+              placeholder="/Applications/Blender.app/Contents/MacOS/Blender"
+            />
+          </div>
+          <div class="field">
+            <label>Carpeta de Unity (opcional)</label>
+            <input
+              type="text"
+              id="cfg_unity"
+              placeholder="/ruta/a/TuProyecto/Assets/Models"
+            />
+            <div class="note">
+              Si la completas, cada modelo que pase el QA en verde se copia ahí
+              automáticamente.
+            </div>
+          </div>
+          <button class="btn" onclick="saveCfg()">Guardar</button>
+        </div>
           </div>
         </div>
+      </section>
 
-        <div class="field">
-          <label>Prompt de textura <span style="text-transform:none;color:var(--txt3)">(opcional)</span></label>
-          <textarea id="f_texprompt" placeholder="tapizado de lino gris claro, patas de roble macizo, acabado mate"></textarea>
-          <div class="note">Con fotos, <b>el color sale de la foto</b> y este prompt solo matiza detalles.
-          Para cambiar el material (ej. blanco → cuero negro) generá primero y después usá
-          <b>Cambiar material</b> en el producto terminado.</div>
+      <!-- ================= pantalla: marcas ================= -->
+      <section id="view-marcas" class="view" hidden>
+        <div class="toolbar">
+          <h2>Marcas y metadatos</h2>
+          <span class="count" id="bcount"></span>
+          <span class="spacer"></span>
+          <button class="btn sm" onclick="editBrand(null)">
+            + Nueva marca
+          </button>
         </div>
 
-        <details class="adv">
-          <summary>Parámetros de generación</summary>
-          <div class="in">
-            <div class="row">
-              <div class="field">
-                <label>Modelo</label>
-                <select id="f_model">
-                  <option value="meshy-7">Calidad alta (v7)</option>
-                  <option value="latest">Última versión</option>
-                  <option value="meshy-6">Estándar (v6)</option>
-                  <option value="meshy-6-lite">Rápida (v6 lite)</option>
-                </select>
+        <div class="blayout">
+          <aside class="card">
+            <div class="body" style="padding: 10px">
+              <div class="side" id="sidelist"></div>
+            </div>
+          </aside>
+
+          <div class="card">
+            <h2 id="panetitle">Campos base</h2>
+            <div class="body">
+              <div id="pane-base">
+                <div id="basefields" class="fieldlist"></div>
+                <div class="frow">
+                  <button class="btn ghost sm" onclick="addField('base')">
+                    + Campo
+                  </button>
+                  <button class="btn sm" onclick="saveBase()">
+                    Guardar campos base
+                  </button>
+                </div>
+                <div class="note">
+                  Se piden en todos los productos, sin importar la marca.
+                  Cualquier marca puede agregar los suyos, pero no repetir estas
+                  claves.
+                </div>
               </div>
-              <div class="field">
-                <label>Topología</label>
-                <select id="f_topo">
-                  <option value="quad">quad</option>
-                  <option value="triangle">triangle</option>
-                </select>
+
+              <div id="pane-brand" hidden>
+                <div class="field">
+                  <label>Nombre de la marca</label>
+                  <input type="text" id="b_name" placeholder="Vinora" />
+                </div>
+
+                <label>Campos propios de esta marca</label>
+                <div id="brandfields" class="fieldlist"></div>
+                <button
+                  class="btn ghost sm"
+                  style="margin-top: 8px"
+                  onclick="addField('brand')"
+                >
+                  + Campo
+                </button>
+                <div class="note">Se suman a los campos base.</div>
+
+                <label style="margin-top: 22px"
+                  >Valores por defecto del pipeline</label
+                >
+                <div class="row">
+                  <div>
+                    <span class="mini">Altura real (m)</span>
+                    <input
+                      type="number"
+                      id="b_height"
+                      step="0.01"
+                      min="0"
+                      placeholder="0.85"
+                    />
+                  </div>
+                  <div>
+                    <span class="mini">Budget de tris</span>
+                    <input
+                      type="number"
+                      id="b_budget"
+                      step="1000"
+                      min="100"
+                      placeholder="15000"
+                    />
+                  </div>
+                </div>
+                <div class="row">
+                  <div>
+                    <span class="mini">Topología</span>
+                    <select id="b_topo">
+                      <option value="">—</option>
+                      <option value="quad">quad</option>
+                      <option value="triangle">triangle</option>
+                    </select>
+                  </div>
+                  <div>
+                    <span class="mini">Textura</span>
+                    <select id="b_texres">
+                      <option value="">—</option>
+                      <option value="2k">2k</option>
+                      <option value="4k">4k</option>
+                      <option value="8k">8k</option>
+                    </select>
+                  </div>
+                </div>
+                <span class="mini">Prompt de textura por defecto</span>
+                <textarea
+                  id="b_texprompt"
+                  placeholder="tapizado de lino, patas de roble macizo"
+                ></textarea>
+                <div class="note">
+                  Al elegir esta marca en un producto, el formulario se completa
+                  con estos valores.
+                </div>
+
+                <div class="frow" style="margin-top: 16px">
+                  <button class="btn" onclick="saveBrand()">
+                    Guardar marca
+                  </button>
+                  <span class="spacer"></span>
+                  <button
+                    class="btn ghost sm danger"
+                    id="b_del"
+                    onclick="delBrand()"
+                  >
+                    Borrar marca
+                  </button>
+                </div>
               </div>
             </div>
-            <div class="row">
-              <div class="field">
-                <label>Polígonos a pedir</label>
-                <input type="number" id="f_poly" value="7500" step="500" min="100" max="300000">
-              </div>
-              <div class="field">
-                <label>Textura</label>
-                <select id="f_texres">
-                  <option value="2k">2k</option>
-                  <option value="4k">4k</option>
-                  <option value="8k">8k</option>
-                </select>
-              </div>
-            </div>
-            <div class="note" id="polyhint" style="margin:-4px 0 12px"></div>
-            <label class="chk"><input type="checkbox" id="f_ultra" checked>
-              <span>Ultra mode<small>Geometría de mayor fidelidad. +5 créditos, solo en calidad alta y última versión.</small></span></label>
-            <label class="chk"><input type="checkbox" id="f_remesh" checked>
-              <span>Remesh<small>Sin esto bajás el output crudo: millones de tris, sin UVs.</small></span></label>
-            <label class="chk"><input type="checkbox" id="f_pbr" checked>
-              <span>Mapas PBR<small>metallic, roughness y normal además del base color.</small></span></label>
-            <label class="chk"><input type="checkbox" id="f_lightmap" checked>
-              <span>Canal UV2 de lightmap<small>Generado en Blender para el bake de GI en Unity.</small></span></label>
-            <div class="note" id="cost">Costo estimado: <b>35 créditos</b></div>
           </div>
-        </details>
+        </div>
+      </section>
 
-        <button class="btn" id="go" style="width:100%;margin-top:14px" onclick="submit()">Procesar</button>
-      </div>
+      <!-- ================= pantalla: productos ================= -->
+      <section id="view-productos" class="view">
+        <div class="grid">
+          <!-- ================= panel de carga ================= -->
+          <div class="card">
+            <h2>Nuevo producto</h2>
+            <div class="body">
+              <div class="field">
+                <label>Nombre del producto</label>
+                <input type="text" id="f_name" placeholder="Silla Cloudrest" />
+              </div>
+
+              <div class="field">
+                <label>Marca</label>
+                <select id="f_brand" onchange="onBrandChange()"></select>
+              </div>
+
+              <div class="field" id="metawrap">
+                <label>Metadatos</label>
+                <div id="metafields"></div>
+              </div>
+
+              <div class="field">
+                <label>Fotos del producto</label>
+                <div id="drop">
+                  <div class="big">📷</div>
+                  <p><b>Arrastra 1 a 4 fotos</b> o hacé clic</p>
+                  <small
+                    >La 1ª es la vista frontal · también acepta un .glb
+                    existente</small
+                  >
+                </div>
+                <input
+                  type="file"
+                  id="f_files"
+                  multiple
+                  accept=".jpg,.jpeg,.png,.glb,.gltf"
+                  hidden
+                />
+                <div id="thumbs"></div>
+                <div class="note" id="modehint">
+                  Con <b>2 a 4 vistas</b> (frente, lado, atrás) el generador
+                  deja de inventar las caras que no ve: es la única forma real
+                  de eliminar la asimetría. Con 1 sola foto se activan además
+                  <code>auto_size</code> y <code>origin_at</code>, que no
+                  existen en el endpoint multi-imagen.
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="field">
+                  <label>Altura real (m)</label>
+                  <input
+                    type="number"
+                    id="f_height"
+                    value="0.85"
+                    step="0.01"
+                    min="0"
+                  />
+                </div>
+                <div class="field">
+                  <label>Budget de tris</label>
+                  <input
+                    type="number"
+                    id="f_budget"
+                    value="15000"
+                    step="1000"
+                    min="100"
+                  />
+                </div>
+              </div>
+
+              <div class="field">
+                <label
+                  >Prompt de textura
+                  <span style="text-transform: none; color: var(--txt3)"
+                    >(opcional)</span
+                  ></label
+                >
+                <textarea
+                  id="f_texprompt"
+                  placeholder="tapizado de lino gris claro, patas de roble macizo, acabado mate"
+                ></textarea>
+                <div class="note">
+                  Con fotos, <b>el color sale de la foto</b> y este prompt solo
+                  matiza detalles. Para cambiar el material (ej. blanco → cuero
+                  negro) generá primero y después usa <b>Cambiar material</b> en
+                  el producto terminado.
+                </div>
+              </div>
+
+              <details class="adv">
+                <summary>Parámetros de generación</summary>
+                <div class="in">
+                  <div class="row">
+                    <div class="field">
+                      <label>Modelo</label>
+                      <select id="f_model">
+                        <option value="meshy-7">Calidad alta (v7)</option>
+                        <option value="latest">Última versión</option>
+                        <option value="meshy-6">Estándar (v6)</option>
+                        <option value="meshy-6-lite">Rápida (v6 lite)</option>
+                      </select>
+                    </div>
+                    <div class="field">
+                      <label>Topología</label>
+                      <select id="f_topo">
+                        <option value="quad">quad</option>
+                        <option value="triangle">triangle</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="row">
+                    <div class="field">
+                      <label>Polígonos a pedir</label>
+                      <input
+                        type="number"
+                        id="f_poly"
+                        value="7500"
+                        step="500"
+                        min="100"
+                        max="300000"
+                      />
+                    </div>
+                    <div class="field">
+                      <label>Textura</label>
+                      <select id="f_texres">
+                        <option value="2k">2k</option>
+                        <option value="4k">4k</option>
+                        <option value="8k">8k</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div
+                    class="note"
+                    id="polyhint"
+                    style="margin: -4px 0 12px"
+                  ></div>
+                  <label class="chk"
+                    ><input type="checkbox" id="f_ultra" checked />
+                    <span
+                      >Ultra mode<small
+                        >Geometría de mayor fidelidad. +5 créditos, solo en
+                        calidad alta y última versión.</small
+                      ></span
+                    ></label
+                  >
+                  <label class="chk"
+                    ><input type="checkbox" id="f_remesh" checked />
+                    <span
+                      >Remesh<small
+                        >Sin esto bajás el output crudo: millones de tris, sin
+                        UVs.</small
+                      ></span
+                    ></label
+                  >
+                  <label class="chk"
+                    ><input type="checkbox" id="f_pbr" checked />
+                    <span
+                      >Mapas PBR<small
+                        >metallic, roughness y normal además del base
+                        color.</small
+                      ></span
+                    ></label
+                  >
+                  <label class="chk"
+                    ><input type="checkbox" id="f_lightmap" checked />
+                    <span
+                      >Canal UV2 de lightmap<small
+                        >Generado en Blender para el bake de GI en Unity.</small
+                      ></span
+                    ></label
+                  >
+                  <div class="note" id="cost">
+                    Costo estimado: <b>35 créditos</b>
+                  </div>
+                </div>
+              </details>
+
+              <button
+                class="btn"
+                id="go"
+                style="width: 100%; margin-top: 14px"
+                onclick="submit()"
+              >
+                Procesar
+              </button>
+            </div>
+          </div>
+
+          <!-- ================= lista ================= -->
+          <div>
+            <div class="toolbar">
+              <h2>Productos</h2>
+              <span class="count" id="pcount"></span>
+              <span class="spacer"></span>
+              <button class="btn ghost sm" onclick="refresh()">
+                Actualizar
+              </button>
+            </div>
+            <div id="list"></div>
+          </div>
+        </div>
+      </section>
     </div>
 
-    <!-- ================= lista ================= -->
-    <div>
-      <div class="toolbar">
-        <h2>Productos</h2>
-        <span class="count" id="pcount"></span>
-        <span class="spacer"></span>
-        <button class="btn ghost sm" onclick="refresh()">Actualizar</button>
-      </div>
-      <div id="list"></div>
+    <div id="lb" onclick="this.classList.remove('on')">
+      <img id="lbimg" alt="" />
     </div>
+    <div id="toast"></div>
 
-  </div>
-</div>
+    <script>
+      const $ = (s) => document.querySelector(s);
+      let files = [],
+        products = [],
+        open = new Set(),
+        cfg = {};
 
-<div id="lb" onclick="this.classList.remove('on')"><img id="lbimg" alt=""></div>
-<div id="toast"></div>
+      /* ---------------- toast ---------------- */
+      let tt;
+      function toast(msg) {
+        const t = $("#toast");
+        t.textContent = msg;
+        t.classList.add("on");
+        clearTimeout(tt);
+        tt = setTimeout(() => t.classList.remove("on"), 3600);
+      }
+      /* ---------------- config ---------------- */
 
-<script>
-const $ = s => document.querySelector(s);
-let files = [], products = [], open = new Set(), cfg = {};
+      /* ---------------- router de pantallas ----------------
+         Dos vistas reales con URL propia (#/productos y #/marcas), no un
+         panel que se despliega: el hash permite volver, recargar y compartir. */
+      const VIEWS = ["productos", "marcas", "ajustes"];
+      function showView(name) {
+        if (!VIEWS.includes(name)) name = "productos";
+        VIEWS.forEach((v) => {
+          $("#view-" + v).hidden = v !== name;
+          $("#nav-" + v).classList.toggle("on", v === name);
+        });
+        // al entrar, el panel vuelve a su estado inicial salvo que estes
+        // editando una marca concreta
+        if (name === "marcas") {
+          if (editing) renderBrands();
+          else showBase();
+        }
+        if (name === "ajustes") loadCfg();
+        window.scrollTo(0, 0);
+      }
+      function routeFromHash() {
+        showView((location.hash || "").replace(/^#\/?/, "") || "productos");
+      }
+      window.addEventListener("hashchange", routeFromHash);
+      async function loadCfg() {
+        cfg = await (await fetch("/api/config")).json();
+        $("#cfg_blender").value = cfg.blender_path || "";
+        $("#cfg_unity").value = cfg.unity_export_dir || "";
+        const ks = $("#cfg_keystate");
+        ks.className = "keystate " + (cfg.has_api_key ? "ok" : "bad");
+        ks.textContent = cfg.has_api_key
+          ? `Cargada desde ${cfg.api_key_var} (${cfg.api_key_masked})`
+          : cfg.env_file
+            ? "No encontrada: revisá MESHY_API_KEY en .env"
+            : "Falta el archivo .env — copiá .env.example a .env";
+        const ok = cfg.has_api_key && cfg.blender_ok;
+        $("#hdot").className = "dot" + (ok ? "" : " off");
+        const miss = [];
+        if (!cfg.has_api_key) miss.push("falta API key en .env");
+        if (!cfg.blender_ok) miss.push("falta Blender");
+        const hs = $("#hstat");
+        hs.textContent = miss.length ? miss.join(" · ") : "listo";
+        hs.className = "count mono" + (miss.length ? " warn" : "");
+        hs.onclick = miss.length ? () => (location.hash = "#/ajustes") : null;
+        hs.style.cursor = miss.length ? "pointer" : "";
+        const cs = $("#cfgstate");
+        if (cs) cs.textContent = miss.length ? miss.join(" · ") : "todo en orden";
+      }
+      async function saveCfg() {
+        await fetch("/api/config", {
+          method: "POST",
+          body: JSON.stringify({
+            blender_path: $("#cfg_blender").value.trim(),
+            unity_export_dir: $("#cfg_unity").value.trim(),
+          }),
+        });
+        await loadCfg();
+        toast("Ajustes guardados");
+      }
 
-/* ---------------- toast ---------------- */
-let tt;
-function toast(msg){
-  const t = $('#toast'); t.textContent = msg; t.classList.add('on');
-  clearTimeout(tt); tt = setTimeout(()=>t.classList.remove('on'), 3600);
-}
+      /* ---------------- dropzone ---------------- */
+      const drop = $("#drop"),
+        input = $("#f_files");
+      drop.onclick = () => input.click();
+      input.onchange = (e) => addFiles([...e.target.files]);
+      ["dragenter", "dragover"].forEach((ev) =>
+        drop.addEventListener(ev, (e) => {
+          e.preventDefault();
+          drop.classList.add("over");
+        }),
+      );
+      ["dragleave", "drop"].forEach((ev) =>
+        drop.addEventListener(ev, (e) => {
+          e.preventDefault();
+          drop.classList.remove("over");
+        }),
+      );
+      drop.addEventListener("drop", (e) => addFiles([...e.dataTransfer.files]));
 
-/* ---------------- config ---------------- */
-function togglePanel(id){
-  const c = $('#' + id);
-  const show = c.style.display === 'none';
-  ['cfgcard','brandcard'].forEach(x => $('#' + x).style.display = 'none');
-  c.style.display = show ? '' : 'none';
-  if (show && id === 'brandcard') renderBrands();
-}
-async function loadCfg(){
-  cfg = await (await fetch('/api/config')).json();
-  $('#cfg_blender').value = cfg.blender_path || '';
-  $('#cfg_unity').value = cfg.unity_export_dir || '';
-  const ks = $('#cfg_keystate');
-  ks.className = 'keystate ' + (cfg.has_api_key ? 'ok' : 'bad');
-  ks.textContent = cfg.has_api_key
-    ? `Cargada desde ${cfg.api_key_var} (${cfg.api_key_masked})`
-    : (cfg.env_file ? 'No encontrada: revisá MESHY_API_KEY en .env'
-                    : 'Falta el archivo .env — copiá .env.example a .env');
-  const ok = cfg.has_api_key && cfg.blender_ok;
-  $('#hdot').className = 'dot' + (ok ? '' : ' off');
-  const miss = [];
-  if (!cfg.has_api_key) miss.push('falta API key en .env');
-  if (!cfg.blender_ok) miss.push('falta Blender');
-  $('#hstat').textContent = miss.length ? miss.join(' · ') : 'listo';
-  if (miss.length) $('#cfgcard').style.display = '';
-}
-async function saveCfg(){
-  await fetch('/api/config', {method:'POST', body: JSON.stringify({
-    blender_path: $('#cfg_blender').value.trim(),
-    unity_export_dir: $('#cfg_unity').value.trim()
-  })});
-  await loadCfg(); toast('Ajustes guardados');
-}
+      function addFiles(list) {
+        for (const f of list) {
+          const n = f.name.toLowerCase();
+          if (n.endsWith(".glb") || n.endsWith(".gltf")) {
+            files = [f];
+            break;
+          }
+          if (/\.(jpe?g|png)$/.test(n) && files.length < 4) files.push(f);
+        }
+        drawThumbs();
+      }
+      function drawThumbs() {
+        const box = $("#thumbs");
+        box.innerHTML = "";
+        files.forEach((f, i) => {
+          const d = document.createElement("div");
+          const isModel = /\.(glb|gltf)$/i.test(f.name);
+          d.className = "th" + (isModel ? " file" : "");
+          if (isModel) d.textContent = f.name;
+          else {
+            const img = document.createElement("img");
+            img.src = URL.createObjectURL(f);
+            d.appendChild(img);
+            const n = document.createElement("div");
+            n.className = "n";
+            n.textContent = i === 0 ? "frente" : "v" + (i + 1);
+            d.appendChild(n);
+          }
+          const x = document.createElement("div");
+          x.className = "x";
+          x.textContent = "×";
+          x.onclick = (e) => {
+            e.stopPropagation();
+            files.splice(i, 1);
+            drawThumbs();
+          };
+          d.appendChild(x);
+          box.appendChild(d);
+        });
+        const isModel = files.length && /\.(glb|gltf)$/i.test(files[0].name);
+        $("#modehint").innerHTML = isModel
+          ? "<b>Modo modelo local.</b> Se saltea la generación: solo acondicionado + QA en Blender. No gasta créditos — ideal para probar el pipeline o pasar assets del equipo 3D por el mismo control de calidad."
+          : files.length === 1
+            ? "Con <b>1 foto</b> se usa <code>/image-to-3d</code>, que incluye <code>auto_size</code> y <code>origin_at:bottom</code>. Sumá más vistas para reducir la asimetría."
+            : "Con <b>" +
+              (files.length || "2 a 4") +
+              " vistas</b> se usa <code>/multi-image-to-3d</code>: mejor geometría, menos alucinación. La escala y el pivote los corrige Blender después.";
+        updCost();
+      }
 
-/* ---------------- dropzone ---------------- */
-const drop = $('#drop'), input = $('#f_files');
-drop.onclick = () => input.click();
-input.onchange = e => addFiles([...e.target.files]);
-['dragenter','dragover'].forEach(ev =>
-  drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
-['dragleave','drop'].forEach(ev =>
-  drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
-drop.addEventListener('drop', e => addFiles([...e.dataTransfer.files]));
+      function updCost() {
+        const isModel = files.length && /\.(glb|gltf)$/i.test(files[0].name);
+        if (isModel) {
+          $("#cost").innerHTML =
+            "Costo: <b>0 créditos</b> (no pasa por el generador)";
+          return;
+        }
+        let c = 20;
+        if ($("#f_pbr").checked || true)
+          c = $("#f_texres").value === "8k" ? 35 : 30;
+        if (
+          $("#f_ultra").checked &&
+          ["meshy-7", "latest"].includes($("#f_model").value)
+        )
+          c += 5;
+        if ($("#f_remesh").checked) c += 5;
+        $("#cost").innerHTML = "Costo estimado: <b>" + c + " créditos</b>";
+      }
+      ["f_pbr", "f_ultra", "f_remesh", "f_texres", "f_model"].forEach((id) =>
+        document.addEventListener("change", (e) => {
+          if (e.target.id === id) updCost();
+        }),
+      );
 
-function addFiles(list){
-  for (const f of list){
-    const n = f.name.toLowerCase();
-    if (n.endsWith('.glb') || n.endsWith('.gltf')){ files = [f]; break; }
-    if (/\.(jpe?g|png)$/.test(n) && files.length < 4) files.push(f);
-  }
-  drawThumbs();
-}
-function drawThumbs(){
-  const box = $('#thumbs'); box.innerHTML = '';
-  files.forEach((f, i) => {
-    const d = document.createElement('div');
-    const isModel = /\.(glb|gltf)$/i.test(f.name);
-    d.className = 'th' + (isModel ? ' file' : '');
-    if (isModel) d.textContent = f.name;
-    else {
-      const img = document.createElement('img');
-      img.src = URL.createObjectURL(f); d.appendChild(img);
-      const n = document.createElement('div');
-      n.className = 'n'; n.textContent = i === 0 ? 'frente' : 'v' + (i+1);
-      d.appendChild(n);
-    }
-    const x = document.createElement('div');
-    x.className = 'x'; x.textContent = '×';
-    x.onclick = e => { e.stopPropagation(); files.splice(i,1); drawThumbs(); };
-    d.appendChild(x); box.appendChild(d);
-  });
-  const isModel = files.length && /\.(glb|gltf)$/i.test(files[0].name);
-  $('#modehint').innerHTML = isModel
-    ? '<b>Modo modelo local.</b> Se saltea la generación: solo acondicionado + QA en Blender. No gasta créditos — ideal para probar el pipeline o pasar assets del equipo 3D por el mismo control de calidad.'
-    : (files.length === 1
-      ? 'Con <b>1 foto</b> se usa <code>/image-to-3d</code>, que incluye <code>auto_size</code> y <code>origin_at:bottom</code>. Sumá más vistas para reducir la asimetría.'
-      : 'Con <b>' + (files.length || '2 a 4') + ' vistas</b> se usa <code>/multi-image-to-3d</code>: mejor geometría, menos alucinación. La escala y el pivote los corrige Blender después.');
-  updCost();
-}
-
-function updCost(){
-  const isModel = files.length && /\.(glb|gltf)$/i.test(files[0].name);
-  if (isModel){ $('#cost').innerHTML = 'Costo: <b>0 créditos</b> (no pasa por el generador)'; return; }
-  let c = 20;
-  if ($('#f_pbr').checked || true) c = $('#f_texres').value === '8k' ? 35 : 30;
-  if ($('#f_ultra').checked && ['meshy-7','latest'].includes($('#f_model').value)) c += 5;
-  if ($('#f_remesh').checked) c += 5;
-  $('#cost').innerHTML = 'Costo estimado: <b>' + c + ' créditos</b>';
-}
-['f_pbr','f_ultra','f_remesh','f_texres','f_model'].forEach(id =>
-  document.addEventListener('change', e => { if (e.target.id === id) updCost(); }));
-
-/* ---------- polycount pedido, sincronizado con el budget ----------
+      /* ---------- polycount pedido, sincronizado con el budget ----------
    El generador cuenta caras: 1 quad = 2 triangulos. Si lo que pide supera el
    budget, Blender tiene que decimar y las texturas se re-hornean (mas lento y
    con algo de perdida). Pedir el numero correcto de entrada evita todo eso. */
-let polyTouched = false;
-function syncPoly(){
-  const budget = +$('#f_budget').value || 0;
-  const quad = $('#f_topo').value === 'quad';
-  if (!polyTouched) $('#f_poly').value = Math.max(100, Math.round(quad ? budget / 2 : budget));
-  const tris = (+$('#f_poly').value) * (quad ? 2 : 1);
-  $('#polyhint').innerHTML = tris > budget * 1.05
-    ? '⚠ El generador va a entregar ~' + tris.toLocaleString('es') + ' tris y el budget es ' + budget.toLocaleString('es') +
-      ': Blender tendrá que decimar y re-hornear las texturas.'
-    : 'El generador entrega ~' + tris.toLocaleString('es') + ' tris' + (quad ? ' (1 quad = 2 tris)' : '') +
-      ': entra en el budget, las texturas originales quedan intactas.';
-}
-$('#f_budget').addEventListener('input', syncPoly);
-$('#f_topo').addEventListener('change', syncPoly);
-$('#f_poly').addEventListener('input', () => { polyTouched = true; syncPoly(); });
+      let polyTouched = false;
+      function syncPoly() {
+        const budget = +$("#f_budget").value || 0;
+        const quad = $("#f_topo").value === "quad";
+        if (!polyTouched)
+          $("#f_poly").value = Math.max(
+            100,
+            Math.round(quad ? budget / 2 : budget),
+          );
+        const tris = +$("#f_poly").value * (quad ? 2 : 1);
+        $("#polyhint").innerHTML =
+          tris > budget * 1.05
+            ? "⚠ El generador va a entregar ~" +
+              tris.toLocaleString("es") +
+              " tris y el budget es " +
+              budget.toLocaleString("es") +
+              ": Blender tendrá que decimar y re-hornear las texturas."
+            : "El generador entrega ~" +
+              tris.toLocaleString("es") +
+              " tris" +
+              (quad ? " (1 quad = 2 tris)" : "") +
+              ": entra en el budget, las texturas originales quedan intactas.";
+      }
+      $("#f_budget").addEventListener("input", syncPoly);
+      $("#f_topo").addEventListener("change", syncPoly);
+      $("#f_poly").addEventListener("input", () => {
+        polyTouched = true;
+        syncPoly();
+      });
 
-
-/* ============================ marcas y metadatos ============================
+      /* ============================ marcas y metadatos ============================
    catalog = { base_fields:[...], brands:[{id,name,fields,pipeline}] }
    Los campos base valen para todas las marcas; los de la marca se suman.     */
-let catalog = {base_fields: [], brands: []};
-let editing = null;           // marca que se esta editando (null = nueva)
-let draft = {base: [], brand: []};   // campos en edicion
+      let catalog = { base_fields: [], brands: [] };
+      let editing = null; // marca que se esta editando (null = nueva)
+      let draft = { base: [], brand: [] }; // campos en edicion
 
-const TYPES = [['text','Texto'],['number','Número'],['select','Lista'],
-               ['bool','Sí / No'],['date','Fecha']];
+      const TYPES = [
+        ["text", "Texto"],
+        ["number", "Número"],
+        ["select", "Lista"],
+        ["bool", "Sí / No"],
+        ["date", "Fecha"],
+      ];
 
-async function loadBrands(){
-  try { catalog = await (await fetch('/api/brands')).json(); }
-  catch(e){ return; }
-  const sel = $('#f_brand');
-  const prev = sel.value;
-  sel.innerHTML = '<option value="">Sin marca</option>' +
-    catalog.brands.map(b => `<option value="${b.id}">${esc(b.name)}</option>`).join('');
-  sel.value = prev;
-  onBrandChange();
-}
+      async function loadBrands() {
+        try {
+          catalog = await (await fetch("/api/brands")).json();
+        } catch (e) {
+          return;
+        }
+        const sel = $("#f_brand");
+        const prev = sel.value;
+        sel.innerHTML =
+          '<option value="">Sin marca</option>' +
+          catalog.brands
+            .map((b) => `<option value="${b.id}">${esc(b.name)}</option>`)
+            .join("");
+        sel.value = prev;
+        onBrandChange();
+        // si la pantalla de marcas ya esta abierta, se dibujo con el catalogo
+        // todavia vacio: hay que repintarla al llegar los datos
+        if (!$("#view-marcas").hidden) renderBrands();
+      }
 
-/* ---- panel de marcas ---- */
-function renderBrands(){
-  draft.base = JSON.parse(JSON.stringify(catalog.base_fields || []));
-  drawFields('base');
-  $('#brandlist').innerHTML = catalog.brands.length
-    ? catalog.brands.map(b => `<div class="brow" onclick="editBrand('${b.id}')">
-         <b>${esc(b.name)}</b>
-         <span>${b.fields.length} campo${b.fields.length===1?'':'s'} propios</span></div>`).join('')
-    : '<div class="note" style="margin:0">Todavía no hay marcas.</div>';
-}
+      /* ---- panel de marcas ---- */
+      function renderBrands() {
+        draft.base = JSON.parse(JSON.stringify(catalog.base_fields || []));
+        drawFields("base");
+        const n = catalog.brands.length;
+        $("#bcount").textContent = n
+          ? n + (n === 1 ? " marca" : " marcas")
+          : "sin marcas";
+        $("#sidelist").innerHTML =
+          `<div class="sitem ${editing ? "" : "on"}" onclick="showBase()">
+             <b>Campos base</b>
+             <span>${(catalog.base_fields || []).length} campos · todas las marcas</span>
+           </div>
+           <div class="sdiv">Marcas</div>` +
+          (n
+            ? catalog.brands
+                .map(
+                  (
+                    b,
+                  ) => `<div class="sitem ${editing && editing.id === b.id ? "on" : ""}"
+                            onclick="editBrand('${b.id}')">
+                            <b>${esc(b.name)}</b>
+                            <span>${b.fields.length} campo${b.fields.length === 1 ? "" : "s"} propios</span>
+                          </div>`,
+                )
+                .join("")
+            : '<div class="note" style="margin:6px 0 0">Todavía no hay marcas.</div>');
+      }
 
-function drawFields(scope){
-  const box = $(scope === 'base' ? '#basefields' : '#brandfields');
-  const list = draft[scope];
-  if (!list.length){
-    box.innerHTML = '<div class="note" style="margin:0">Sin campos.</div>';
-    return;
-  }
-  box.innerHTML = list.map((f, i) => `
+      function showBase() {
+        editing = null;
+        $("#panetitle").textContent = "Campos base";
+        $("#pane-base").hidden = false;
+        $("#pane-brand").hidden = true;
+        renderBrands();
+      }
+
+      function drawFields(scope) {
+        const box = $(scope === "base" ? "#basefields" : "#brandfields");
+        const list = draft[scope];
+        if (!list.length) {
+          box.innerHTML =
+            '<div class="note" style="margin:0">Sin campos.</div>';
+          return;
+        }
+        box.innerHTML = list
+          .map(
+            (f, i) => `
     <div class="fitem">
       <div class="top">
-        <input class="lbl" value="${esc(f.label||'')}" placeholder="Nombre visible"
+        <input class="lbl" value="${esc(f.label || "")}" placeholder="Nombre visible"
                oninput="fieldSet('${scope}',${i},'label',this.value)">
         <select class="ty" onchange="fieldSet('${scope}',${i},'type',this.value)">
-          ${TYPES.map(t => `<option value="${t[0]}" ${f.type===t[0]?'selected':''}>${t[1]}</option>`).join('')}
+          ${TYPES.map((t) => `<option value="${t[0]}" ${f.type === t[0] ? "selected" : ""}>${t[1]}</option>`).join("")}
         </select>
         <button class="rm" title="Quitar" onclick="fieldDel('${scope}',${i})">×</button>
       </div>
       <div class="sub">
-        ${f.type === 'select'
-          ? `<input value="${esc((f.options||[]).join(', '))}" placeholder="Opciones separadas por coma"
+        ${
+          f.type === "select"
+            ? `<input value="${esc((f.options || []).join(", "))}" placeholder="Opciones separadas por coma"
                     oninput="fieldSet('${scope}',${i},'options',this.value)">`
-          : f.type === 'bool'
-          ? `<label class="chk"><input type="checkbox" ${f.default===true||f.default==='true'?'checked':''}
+            : f.type === "bool"
+              ? `<label class="chk"><input type="checkbox" ${f.default === true || f.default === "true" ? "checked" : ""}
                     onchange="fieldSet('${scope}',${i},'default',this.checked)"><span>Por defecto: Sí</span></label>`
-          : `<input value="${esc(f.default==null?'':f.default)}" placeholder="Valor por defecto"
-                    oninput="fieldSet('${scope}',${i},'default',this.value)">`}
-        <label class="chk"><input type="checkbox" ${f.required?'checked':''}
+              : `<input value="${esc(f.default == null ? "" : f.default)}" placeholder="Valor por defecto"
+                    oninput="fieldSet('${scope}',${i},'default',this.value)">`
+        }
+        <label class="chk"><input type="checkbox" ${f.required ? "checked" : ""}
           onchange="fieldSet('${scope}',${i},'required',this.checked)"><span>Obligatorio</span></label>
       </div>
-      ${f.type === 'select' ? `<div class="sub"><input value="${esc(f.default==null?'':f.default)}"
-          placeholder="Opción por defecto" oninput="fieldSet('${scope}',${i},'default',this.value)"></div>` : ''}
-    </div>`).join('');
-}
+      ${
+        f.type === "select"
+          ? `<div class="sub"><input value="${esc(f.default == null ? "" : f.default)}"
+          placeholder="Opción por defecto" oninput="fieldSet('${scope}',${i},'default',this.value)"></div>`
+          : ""
+      }
+    </div>`,
+          )
+          .join("");
+      }
 
-function fieldSet(scope, i, k, v){
-  if (k === 'options') v = v.split(',').map(x => x.trim()).filter(Boolean);
-  draft[scope][i][k] = v;
-  if (k === 'type') drawFields(scope);      // cambia los sub-campos visibles
-}
-function fieldDel(scope, i){ draft[scope].splice(i,1); drawFields(scope); }
-function addField(scope){
-  draft[scope].push({label:'', type:'text', required:false, options:[], default:''});
-  drawFields(scope);
-}
+      function fieldSet(scope, i, k, v) {
+        if (k === "options")
+          v = v
+            .split(",")
+            .map((x) => x.trim())
+            .filter(Boolean);
+        draft[scope][i][k] = v;
+        if (k === "type") drawFields(scope); // cambia los sub-campos visibles
+      }
+      function fieldDel(scope, i) {
+        draft[scope].splice(i, 1);
+        drawFields(scope);
+      }
+      function addField(scope) {
+        draft[scope].push({
+          label: "",
+          type: "text",
+          required: false,
+          options: [],
+          default: "",
+        });
+        drawFields(scope);
+      }
 
-async function saveBase(){
-  const r = await fetch('/api/brands/base', {method:'POST',
-    body: JSON.stringify({fields: draft.base})});
-  const j = await r.json();
-  if (!r.ok) return toast('Error: ' + j.error);
-  catalog = j; renderBrands(); loadBrands(); toast('Campos base guardados');
-}
+      async function saveBase() {
+        const r = await fetch("/api/brands/base", {
+          method: "POST",
+          body: JSON.stringify({ fields: draft.base }),
+        });
+        const j = await r.json();
+        if (!r.ok) return toast("Error: " + j.error);
+        catalog = j;
+        renderBrands();
+        loadBrands();
+        toast("Campos base guardados");
+      }
 
-function editBrand(id){
-  editing = id ? catalog.brands.find(b => b.id === id) : null;
-  draft.brand = editing ? JSON.parse(JSON.stringify(editing.fields)) : [];
-  const pl = (editing && editing.pipeline) || {};
-  $('#b_name').value = editing ? editing.name : '';
-  $('#b_height').value = pl.target_height_m ?? '';
-  $('#b_budget').value = pl.tri_budget ?? '';
-  $('#b_topo').value = pl.topology || '';
-  $('#b_texres').value = pl.texture_resolution || '';
-  $('#b_texprompt').value = pl.texture_prompt || '';
-  $('#b_del').style.display = editing ? '' : 'none';
-  $('#brandform').style.display = '';
-  drawFields('brand');
-  $('#b_name').focus();
-}
-function closeBrandForm(){ $('#brandform').style.display = 'none'; editing = null; }
+      function editBrand(id) {
+        editing = id ? catalog.brands.find((b) => b.id === id) : null;
+        draft.brand = editing ? JSON.parse(JSON.stringify(editing.fields)) : [];
+        const pl = (editing && editing.pipeline) || {};
+        $("#b_name").value = editing ? editing.name : "";
+        $("#b_height").value = pl.target_height_m ?? "";
+        $("#b_budget").value = pl.tri_budget ?? "";
+        $("#b_topo").value = pl.topology || "";
+        $("#b_texres").value = pl.texture_resolution || "";
+        $("#b_texprompt").value = pl.texture_prompt || "";
+        $("#b_del").style.display = editing ? "" : "none";
+        $("#panetitle").textContent = editing ? editing.name : "Nueva marca";
+        $("#pane-base").hidden = true;
+        $("#pane-brand").hidden = false;
+        drawFields("brand");
+        if (id) renderBrands();
+        else {
+          $("#sidelist")
+            .querySelectorAll(".sitem")
+            .forEach((e) => e.classList.remove("on"));
+        }
+        $("#b_name").focus();
+      }
 
-async function saveBrand(){
-  const body = {
-    id: editing ? editing.id : undefined,
-    name: $('#b_name').value.trim(),
-    fields: draft.brand,
-    pipeline: {
-      target_height_m: $('#b_height').value,
-      tri_budget: $('#b_budget').value,
-      topology: $('#b_topo').value,
-      texture_resolution: $('#b_texres').value,
-      texture_prompt: $('#b_texprompt').value.trim()
-    }
-  };
-  const r = await fetch('/api/brands', {method:'POST', body: JSON.stringify(body)});
-  const j = await r.json();
-  if (!r.ok) return toast('Error: ' + j.error);
-  catalog = await (await fetch('/api/brands')).json();
-  closeBrandForm(); renderBrands(); loadBrands(); toast('Marca guardada');
-}
+      async function saveBrand() {
+        const body = {
+          id: editing ? editing.id : undefined,
+          name: $("#b_name").value.trim(),
+          fields: draft.brand,
+          pipeline: {
+            target_height_m: $("#b_height").value,
+            tri_budget: $("#b_budget").value,
+            topology: $("#b_topo").value,
+            texture_resolution: $("#b_texres").value,
+            texture_prompt: $("#b_texprompt").value.trim(),
+          },
+        };
+        const r = await fetch("/api/brands", {
+          method: "POST",
+          body: JSON.stringify(body),
+        });
+        const j = await r.json();
+        if (!r.ok) return toast("Error: " + j.error);
+        catalog = await (await fetch("/api/brands")).json();
+        showBase();
+        renderBrands();
+        loadBrands();
+        toast("Marca guardada");
+      }
 
-async function delBrand(){
-  if (!editing) return;
-  if (!confirm('¿Borrar la marca "' + editing.name + '"? Los campos que definió se pierden.')) return;
-  const r = await fetch('/api/brands/' + editing.id, {method:'DELETE'});
-  const j = await r.json();
-  if (!r.ok) return toast(j.error);
-  catalog = await (await fetch('/api/brands')).json();
-  closeBrandForm(); renderBrands(); loadBrands(); toast('Marca borrada');
-}
+      async function delBrand() {
+        if (!editing) return;
+        if (
+          !confirm(
+            '¿Borrar la marca "' +
+              editing.name +
+              '"? Los campos que definió se pierden.',
+          )
+        )
+          return;
+        const r = await fetch("/api/brands/" + editing.id, {
+          method: "DELETE",
+        });
+        const j = await r.json();
+        if (!r.ok) return toast(j.error);
+        catalog = await (await fetch("/api/brands")).json();
+        showBase();
+        renderBrands();
+        loadBrands();
+        toast("Marca borrada");
+      }
 
-/* ---- campos de metadatos en el formulario de producto ---- */
-let metaFields = [];
-async function onBrandChange(){
-  const id = $('#f_brand').value;
-  const r = await fetch('/api/brands/' + (id || 'none') + '/fields');
-  const j = await r.json();
-  metaFields = j.fields || [];
-  drawMetaFields();
-  // la marca precarga sus valores del pipeline
-  const pl = j.pipeline || {};
-  if (pl.target_height_m != null) $('#f_height').value = pl.target_height_m;
-  if (pl.tri_budget != null) $('#f_budget').value = pl.tri_budget;
-  if (pl.topology) $('#f_topo').value = pl.topology;
-  if (pl.texture_resolution) $('#f_texres').value = pl.texture_resolution;
-  if (pl.texture_prompt) $('#f_texprompt').value = pl.texture_prompt;
-  polyTouched = false; syncPoly();
-}
+      /* ---- campos de metadatos en el formulario de producto ---- */
+      let metaFields = [];
+      async function onBrandChange() {
+        const id = $("#f_brand").value;
+        const r = await fetch("/api/brands/" + (id || "none") + "/fields");
+        const j = await r.json();
+        metaFields = j.fields || [];
+        drawMetaFields();
+        // la marca precarga sus valores del pipeline
+        const pl = j.pipeline || {};
+        if (pl.target_height_m != null)
+          $("#f_height").value = pl.target_height_m;
+        if (pl.tri_budget != null) $("#f_budget").value = pl.tri_budget;
+        if (pl.topology) $("#f_topo").value = pl.topology;
+        if (pl.texture_resolution) $("#f_texres").value = pl.texture_resolution;
+        if (pl.texture_prompt) $("#f_texprompt").value = pl.texture_prompt;
+        polyTouched = false;
+        syncPoly();
+      }
 
-function drawMetaFields(){
-  const box = $('#metafields');
-  if (!metaFields.length){
-    box.innerHTML = '<div class="note" style="margin:0">Sin campos definidos. Configuralos en <b>Marcas</b>.</div>';
-    return;
-  }
-  box.innerHTML = metaFields.map(f => {
-    const tag = f.scope === 'brand' ? '<span class="tag">marca</span>' : '';
-    const req = f.required ? '<i> *</i>' : '';
-    const id = 'meta_' + f.key;
-    let input;
-    if (f.type === 'select')
-      input = `<select id="${id}">${(f.options||[]).map(o =>
-        `<option ${o===f.default?'selected':''}>${esc(o)}</option>`).join('')}</select>`;
-    else if (f.type === 'bool')
-      input = `<label class="chk"><input type="checkbox" id="${id}" ${f.default?'checked':''}><span>Sí</span></label>`;
-    else
-      input = `<input type="${f.type==='number'?'number':(f.type==='date'?'date':'text')}"
-                id="${id}" value="${esc(f.default==null?'':f.default)}"
-                placeholder="${esc(f.help||'')}">`;
-    return `<div class="metafield"><div class="mlabel">${esc(f.label)}${req}${tag}</div>${input}</div>`;
-  }).join('');
-}
+      function drawMetaFields() {
+        const box = $("#metafields");
+        if (!metaFields.length) {
+          box.innerHTML =
+            '<div class="note" style="margin:0">Sin campos definidos. Configuralos en <b>Marcas</b>.</div>';
+          return;
+        }
+        box.innerHTML = metaFields
+          .map((f) => {
+            const tag =
+              f.scope === "brand" ? '<span class="tag">marca</span>' : "";
+            const req = f.required ? "<i> *</i>" : "";
+            const id = "meta_" + f.key;
+            let input;
+            if (f.type === "select")
+              input = `<select id="${id}">${(f.options || [])
+                .map(
+                  (o) =>
+                    `<option ${o === f.default ? "selected" : ""}>${esc(o)}</option>`,
+                )
+                .join("")}</select>`;
+            else if (f.type === "bool")
+              input = `<label class="chk"><input type="checkbox" id="${id}" ${f.default ? "checked" : ""}><span>Sí</span></label>`;
+            else
+              input = `<input type="${f.type === "number" ? "number" : f.type === "date" ? "date" : "text"}"
+                id="${id}" value="${esc(f.default == null ? "" : f.default)}"
+                placeholder="${esc(f.help || "")}">`;
+            return `<div class="metafield"><div class="mlabel">${esc(f.label)}${req}${tag}</div>${input}</div>`;
+          })
+          .join("");
+      }
 
-function collectMetadata(){
-  const out = {};
-  for (const f of metaFields){
-    const el = $('#meta_' + f.key);
-    if (!el) continue;
-    out[f.key] = f.type === 'bool' ? el.checked : el.value;
-  }
-  return out;
-}
+      function collectMetadata() {
+        const out = {};
+        for (const f of metaFields) {
+          const el = $("#meta_" + f.key);
+          if (!el) continue;
+          out[f.key] = f.type === "bool" ? el.checked : el.value;
+        }
+        return out;
+      }
 
-/* ---------------- submit ---------------- */
-async function submit(){
-  if (!files.length) return toast('Subí al menos una foto o un .glb');
-  const isModel = /\.(glb|gltf)$/i.test(files[0].name);
-  if (!isModel && !cfg.has_api_key) return toast('Falta la API key: agregala al archivo .env');
-  if (!cfg.blender_ok) return toast('Falta configurar Blender (Ajustes)');
+      /* ---------------- submit ---------------- */
+      async function submit() {
+        if (!files.length) return toast("Subí al menos una foto o un .glb");
+        const isModel = /\.(glb|gltf)$/i.test(files[0].name);
+        if (!isModel && !cfg.has_api_key)
+          return toast("Falta la API key: agregala al archivo .env");
+        if (!cfg.blender_ok) return toast("Falta configurar Blender (Ajustes)");
 
-  const fd = new FormData();
-  fd.append('name', $('#f_name').value.trim() || files[0].name.replace(/\.[^.]+$/, ''));
-  fd.append('options', JSON.stringify({
-    ai_model: $('#f_model').value,
-    ultra_mode: $('#f_ultra').checked,
-    should_texture: true,
-    enable_pbr: $('#f_pbr').checked,
-    texture_resolution: $('#f_texres').value,
-    texture_prompt: $('#f_texprompt').value.trim(),
-    should_remesh: $('#f_remesh').checked,
-    topology: $('#f_topo').value,
-    target_polycount: +$('#f_poly').value,
-    target_height_m: +$('#f_height').value,
-    tri_budget: +$('#f_budget').value,
-    lightmap_uv: $('#f_lightmap').checked
-  }));
-  fd.append('brand_id', $('#f_brand').value);
-  fd.append('metadata', JSON.stringify(collectMetadata()));
-  files.forEach(f => fd.append('files', f, f.name));
+        const fd = new FormData();
+        fd.append(
+          "name",
+          $("#f_name").value.trim() || files[0].name.replace(/\.[^.]+$/, ""),
+        );
+        fd.append(
+          "options",
+          JSON.stringify({
+            ai_model: $("#f_model").value,
+            ultra_mode: $("#f_ultra").checked,
+            should_texture: true,
+            enable_pbr: $("#f_pbr").checked,
+            texture_resolution: $("#f_texres").value,
+            texture_prompt: $("#f_texprompt").value.trim(),
+            should_remesh: $("#f_remesh").checked,
+            topology: $("#f_topo").value,
+            target_polycount: +$("#f_poly").value,
+            target_height_m: +$("#f_height").value,
+            tri_budget: +$("#f_budget").value,
+            lightmap_uv: $("#f_lightmap").checked,
+          }),
+        );
+        fd.append("brand_id", $("#f_brand").value);
+        fd.append("metadata", JSON.stringify(collectMetadata()));
+        files.forEach((f) => fd.append("files", f, f.name));
 
-  $('#go').disabled = true; $('#go').textContent = 'Subiendo...';
-  try{
-    const r = await fetch('/api/products', {method:'POST', body: fd});
-    const j = await r.json();
-    if (!r.ok) throw new Error(j.error || 'error');
-    files = []; drawThumbs(); $('#f_name').value = ''; drawMetaFields();
-    toast('En cola: ' + j.name);
-    refresh();
-  }catch(e){ toast('Error: ' + e.message); }
-  finally{ $('#go').disabled = false; $('#go').textContent = 'Procesar'; }
-}
+        $("#go").disabled = true;
+        $("#go").textContent = "Subiendo...";
+        try {
+          const r = await fetch("/api/products", { method: "POST", body: fd });
+          const j = await r.json();
+          if (!r.ok) throw new Error(j.error || "error");
+          files = [];
+          drawThumbs();
+          $("#f_name").value = "";
+          drawMetaFields();
+          toast("En cola: " + j.name);
+          refresh();
+        } catch (e) {
+          toast("Error: " + e.message);
+        } finally {
+          $("#go").disabled = false;
+          $("#go").textContent = "Procesar";
+        }
+      }
 
-/* ---------------- render lista ---------------- */
-const ACTIVE = ['QUEUED','GENERATING','DOWNLOADING','CONDITIONING'];
-const fmt = n => (n == null ? '-' : n.toLocaleString('es'));
+      /* ---------------- render lista ---------------- */
+      const ACTIVE = ["QUEUED", "GENERATING", "DOWNLOADING", "CONDITIONING"];
+      const fmt = (n) => (n == null ? "-" : n.toLocaleString("es"));
 
-function render(){
-  const el = $('#list');
-  $('#pcount').textContent = products.length ? products.length + ' total' : '';
-  if (!products.length){
-    el.innerHTML = '<div class="empty"><div class="big">📦</div>' +
-      'Todavía no hay productos.<br>Subí fotos o un .glb para empezar.</div>';
-    return;
-  }
-  el.innerHTML = products.map(card).join('');
-}
+      function render() {
+        const el = $("#list");
+        $("#pcount").textContent = products.length
+          ? products.length + " total"
+          : "";
+        if (!products.length) {
+          el.innerHTML =
+            '<div class="empty"><div class="big">📦</div>' +
+            "Todavía no hay productos.<br>Subí fotos o un .glb para empezar.</div>";
+          return;
+        }
+        el.innerHTML = products.map(card).join("");
+      }
 
-function card(p){
-  const active = ACTIVE.includes(p.status);
-  const m = p.metrics, s = m && m.summary;
-  const thumb = p.photos && p.photos.length
-      ? `<img src="/api/products/${p.id}/file/input/${p.photos[0]}" alt="">`
-      : (m ? `<img src="/api/products/${p.id}/file/qa/${(m.renders||[]).includes('tex_q34.png') ? 'tex_q34' : 'q34'}.png" alt="">` : '<span>◻</span>');
+      function card(p) {
+        const active = ACTIVE.includes(p.status);
+        const m = p.metrics,
+          s = m && m.summary;
+        const thumb =
+          p.photos && p.photos.length
+            ? `<img src="/api/products/${p.id}/file/input/${p.photos[0]}" alt="">`
+            : m
+              ? `<img src="/api/products/${p.id}/file/qa/${(m.renders || []).includes("tex_q34.png") ? "tex_q34" : "q34"}.png" alt="">`
+              : "<span>◻</span>";
 
-  const sub = [];
-  if (p.brand_name) sub.push(esc(p.brand_name));
-  if (p.source === 'local') sub.push('modelo local');
-  else if (p.source === 'retexture') sub.push('material nuevo');
-  else sub.push((p.photos||[]).length + ' foto' + ((p.photos||[]).length===1?'':'s'));
-  if (p.credits) sub.push(p.credits + ' créditos');
-  if (s) sub.push(`${s.pass} ok · ${s.warn} avisos · ${s.fail} fallos`);
-  else sub.push(p.stage || '');
+        const sub = [];
+        if (p.brand_name) sub.push(esc(p.brand_name));
+        if (p.source === "local") sub.push("modelo local");
+        else if (p.source === "retexture") sub.push("material nuevo");
+        else
+          sub.push(
+            (p.photos || []).length +
+              " foto" +
+              ((p.photos || []).length === 1 ? "" : "s"),
+          );
+        if (p.credits) sub.push(p.credits + " créditos");
+        if (s) sub.push(`${s.pass} ok · ${s.warn} avisos · ${s.fail} fallos`);
+        else sub.push(p.stage || "");
 
-  return `
-  <div class="item ${open.has(p.id)?'open':''}" data-id="${p.id}">
+        return `
+  <div class="item ${open.has(p.id) ? "open" : ""}" data-id="${p.id}">
     <div class="head" onclick="tog('${p.id}')">
       <div class="thumb">${thumb}</div>
       <div class="meta">
         <div class="nm">${esc(p.name)}</div>
-        <div class="sub">${sub.filter(Boolean).join(' · ')}</div>
+        <div class="sub">${sub.filter(Boolean).join(" · ")}</div>
       </div>
       <span class="badge b-${p.status}">${p.status}</span>
     </div>
-    ${active ? `<div class="bar ${p.progress?'':'ind'}"><i style="width:${p.progress||0}%"></i></div>` : ''}
-    <div class="detail">${open.has(p.id) ? detail(p) : ''}</div>
+    ${active ? `<div class="bar ${p.progress ? "" : "ind"}"><i style="width:${p.progress || 0}%"></i></div>` : ""}
+    <div class="detail">${open.has(p.id) ? detail(p) : ""}</div>
   </div>`;
-}
+      }
 
-function detail(p){
-  const m = p.metrics;
-  let h = '';
+      function detail(p) {
+        const m = p.metrics;
+        let h = "";
 
-  if (p.error) h += `<div class="err"><b>Error:</b> ${esc(p.error)}</div>`;
+        if (p.error)
+          h += `<div class="err"><b>Error:</b> ${esc(p.error)}</div>`;
 
-  h += '<div class="acts">';
-  if (m && m.exported){
-    for (const [k,v] of Object.entries(m.exported))
-      h += `<a class="btn sm" href="/api/products/${p.id}/file/out/${v}?download=1">Descargar ${k.toUpperCase()}</a>`;
-  }
-  if (m && (p.raw_files||{}).glb)
-    h += `<button class="btn ghost sm" onclick="event.stopPropagation();toggleRetex('${p.id}')">Cambiar material</button>`;
-  h += `<button class="btn ghost sm" onclick="event.stopPropagation();retry('${p.id}')">Reprocesar</button>`;
-  h += `<button class="btn ghost sm" onclick="event.stopPropagation();showLog('${p.id}')">Log</button>`;
-  h += `<button class="btn ghost sm danger" onclick="event.stopPropagation();del('${p.id}')">Borrar</button>`;
-  h += '</div>';
+        h += '<div class="acts">';
+        if (m && m.exported) {
+          for (const [k, v] of Object.entries(m.exported))
+            h += `<a class="btn sm" href="/api/products/${p.id}/file/out/${v}?download=1">Descargar ${k.toUpperCase()}</a>`;
+        }
+        if (m && (p.raw_files || {}).glb)
+          h += `<button class="btn ghost sm" onclick="event.stopPropagation();toggleRetex('${p.id}')">Cambiar material</button>`;
+        h += `<button class="btn ghost sm" onclick="event.stopPropagation();retry('${p.id}')">Reprocesar</button>`;
+        h += `<button class="btn ghost sm" onclick="event.stopPropagation();showLog('${p.id}')">Log</button>`;
+        h += `<button class="btn ghost sm danger" onclick="event.stopPropagation();del('${p.id}')">Borrar</button>`;
+        h += "</div>";
 
-  h += `<div class="retex" id="retex-${p.id}" style="display:none" onclick="event.stopPropagation()">
+        h += `<div class="retex" id="retex-${p.id}" style="display:none" onclick="event.stopPropagation()">
       <label>Nuevo material</label>
       <textarea id="retexp-${p.id}" placeholder="cuero negro con textura granulada, acabado semimate; patas de metal negro mate"></textarea>
       <div class="note">Vuelve a pintar esta misma geometría: la forma no cambia,
@@ -889,123 +1937,239 @@ function detail(p){
       <button class="btn sm" style="margin-top:9px" onclick="retex('${p.id}')">Generar material</button>
     </div>`;
 
-  const md = p.metadata || {};
-  if (Object.keys(md).length){
-    const labels = {};
-    (catalog.base_fields||[]).forEach(f => labels[f.key] = f.label);
-    const br = (catalog.brands||[]).find(b => b.id === p.brand_id);
-    if (br) br.fields.forEach(f => labels[f.key] = f.label);
-    h += '<table class="meta">' +
-      (p.brand_name ? `<tr><td>Marca</td><td><b>${esc(p.brand_name)}</b></td></tr>` : '') +
-      Object.entries(md).map(([k,v]) =>
-        `<tr><td>${esc(labels[k] || k)}</td><td>${v === true ? 'Sí' : (v === false ? 'No' : esc(v) || '—')}</td></tr>`
-      ).join('') + '</table>';
-  }
+        const md = p.metadata || {};
+        if (Object.keys(md).length) {
+          const labels = {};
+          (catalog.base_fields || []).forEach((f) => (labels[f.key] = f.label));
+          const br = (catalog.brands || []).find((b) => b.id === p.brand_id);
+          if (br) br.fields.forEach((f) => (labels[f.key] = f.label));
+          h +=
+            '<table class="meta">' +
+            (p.brand_name
+              ? `<tr><td>Marca</td><td><b>${esc(p.brand_name)}</b></td></tr>`
+              : "") +
+            Object.entries(md)
+              .map(
+                ([k, v]) =>
+                  `<tr><td>${esc(labels[k] || k)}</td><td>${v === true ? "Sí" : v === false ? "No" : esc(v) || "—"}</td></tr>`,
+              )
+              .join("") +
+            "</table>";
+        }
 
-  if (p.parent_id) h += `<div class="note" style="margin:0 0 14px">Material re-generado desde otro producto con: <b>${esc(p.retexture_prompt)}</b></div>`;
+        if (p.parent_id)
+          h += `<div class="note" style="margin:0 0 14px">Material re-generado desde otro producto con: <b>${esc(p.retexture_prompt)}</b></div>`;
 
-  if (!m) return h + '<div style="color:var(--txt3);font-size:13px">Sin resultados de QA todavía.</div>';
+        if (!m)
+          return (
+            h +
+            '<div style="color:var(--txt3);font-size:13px">Sin resultados de QA todavía.</div>'
+          );
 
-  // renders
-  // la miniatura del generador va primero: separa "salio asi de origen" de "lo rompio el pipeline"
-  const shots = [...(m.renders||[]), ...(m.uv_render?[m.uv_render]:[])]
-    .map(f => ({src: `/api/products/${p.id}/file/qa/${f}`, cap: f.replace('.png','').replace('tex_','textura ')}));
-  if (p.thumbnail_url) shots.unshift({src: `/api/products/${p.id}/file/raw/thumbnail.png`, cap: 'original del generador'});
-  if (shots.length){
-    h += '<div class="shots">' + shots.map(x =>
-      `<figure><img src="${x.src}" onclick="zoom(this.src)" alt="">
-       <figcaption>${x.cap}</figcaption></figure>`).join('') + '</div>';
-  }
+        // renders
+        // la miniatura del generador va primero: separa "salio asi de origen" de "lo rompio el pipeline"
+        const shots = [
+          ...(m.renders || []),
+          ...(m.uv_render ? [m.uv_render] : []),
+        ].map((f) => ({
+          src: `/api/products/${p.id}/file/qa/${f}`,
+          cap: f.replace(".png", "").replace("tex_", "textura "),
+        }));
+        if (p.thumbnail_url)
+          shots.unshift({
+            src: `/api/products/${p.id}/file/raw/thumbnail.png`,
+            cap: "original del generador",
+          });
+        if (shots.length) {
+          h +=
+            '<div class="shots">' +
+            shots
+              .map(
+                (x) =>
+                  `<figure><img src="${x.src}" onclick="zoom(this.src)" alt="">
+       <figcaption>${x.cap}</figcaption></figure>`,
+              )
+              .join("") +
+            "</div>";
+        }
 
-  // checks
-  h += '<div class="checks">' + (m.checks||[]).map(c =>
-    `<div class="chkrow l-${c.level}"><b>${c.level}</b><span>${esc(c.msg)}</span></div>`).join('') + '</div>';
+        // checks
+        h +=
+          '<div class="checks">' +
+          (m.checks || [])
+            .map(
+              (c) =>
+                `<div class="chkrow l-${c.level}"><b>${c.level}</b><span>${esc(c.msg)}</span></div>`,
+            )
+            .join("") +
+          "</div>";
 
-  // acciones aplicadas
-  if ((m.actions||[]).length)
-    h += '<ul class="did">' + m.actions.map(a => `<li>${esc(a)}</li>`).join('') + '</ul>';
+        // acciones aplicadas
+        if ((m.actions || []).length)
+          h +=
+            '<ul class="did">' +
+            m.actions.map((a) => `<li>${esc(a)}</li>`).join("") +
+            "</ul>";
 
-  // tabla antes/despues
-  const b = m.before, a = m.after;
-  const rows = [
-    ['Triángulos', fmt(b.tris), fmt(a.tris)],
-    ['Vértices', fmt(b.verts), fmt(a.verts)],
-    ['Quads', fmt(b.quads), fmt(a.quads)],
-    ['Canales UV', (b.uv_layers||[]).join(', ') || '—', (a.uv_layers||[]).join(', ') || '—'],
-    ['Dimensiones (m)', (b.dimensions_m||[]).join(' × '), (a.dimensions_m||[]).join(' × ')],
-    ['Base en Z (m)', b.bbox_min?b.bbox_min[2]:'—', a.bbox_min?a.bbox_min[2]:'—'],
-    ['Superficie (m²)', b.surface_area_m2, a.surface_area_m2],
-    ['Slivers (%)', b.sliver_pct, a.sliver_pct],
-    ['Partes sueltas', fmt(b.loose_parts), fmt(a.loose_parts)],
-    ['Aristas de borde', fmt(b.boundary_edges), fmt(a.boundary_edges)],
-    ['Materiales', (b.materials||[]).length, (a.materials||[]).length],
-  ];
-  if (b.uv_stats || a.uv_stats)
-    rows.push(['Área UV acumulada (%)',
-      b.uv_stats ? b.uv_stats.packing_pct : '—', a.uv_stats ? a.uv_stats.packing_pct : '—']);
+        // tabla antes/despues
+        const b = m.before,
+          a = m.after;
+        const rows = [
+          ["Triángulos", fmt(b.tris), fmt(a.tris)],
+          ["Vértices", fmt(b.verts), fmt(a.verts)],
+          ["Quads", fmt(b.quads), fmt(a.quads)],
+          [
+            "Canales UV",
+            (b.uv_layers || []).join(", ") || "—",
+            (a.uv_layers || []).join(", ") || "—",
+          ],
+          [
+            "Dimensiones (m)",
+            (b.dimensions_m || []).join(" × "),
+            (a.dimensions_m || []).join(" × "),
+          ],
+          [
+            "Base en Z (m)",
+            b.bbox_min ? b.bbox_min[2] : "—",
+            a.bbox_min ? a.bbox_min[2] : "—",
+          ],
+          ["Superficie (m²)", b.surface_area_m2, a.surface_area_m2],
+          ["Slivers (%)", b.sliver_pct, a.sliver_pct],
+          ["Partes sueltas", fmt(b.loose_parts), fmt(a.loose_parts)],
+          ["Aristas de borde", fmt(b.boundary_edges), fmt(a.boundary_edges)],
+          [
+            "Materiales",
+            (b.materials || []).length,
+            (a.materials || []).length,
+          ],
+        ];
+        if (b.uv_stats || a.uv_stats)
+          rows.push([
+            "Área UV acumulada (%)",
+            b.uv_stats ? b.uv_stats.packing_pct : "—",
+            a.uv_stats ? a.uv_stats.packing_pct : "—",
+          ]);
 
-  h += '<table class="m"><tr><th>Métrica</th><th style="text-align:right">Origen</th>' +
-       '<th style="text-align:right">Acondicionado</th></tr>' +
-       rows.map(r => `<tr><td>${r[0]}</td><td class="n">${r[1]}</td>` +
-       `<td class="n"><span class="arrow">→</span>${r[2]}</td></tr>`).join('') + '</table>';
+        h +=
+          '<table class="m"><tr><th>Métrica</th><th style="text-align:right">Origen</th>' +
+          '<th style="text-align:right">Acondicionado</th></tr>' +
+          rows
+            .map(
+              (r) =>
+                `<tr><td>${r[0]}</td><td class="n">${r[1]}</td>` +
+                `<td class="n"><span class="arrow">→</span>${r[2]}</td></tr>`,
+            )
+            .join("") +
+          "</table>";
 
-  h += `<pre class="log" id="log-${p.id}" style="display:none"></pre>`;
-  return h;
-}
+        h += `<pre class="log" id="log-${p.id}" style="display:none"></pre>`;
+        return h;
+      }
 
-function esc(s){ return String(s == null ? '' : s)
-  .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+      function esc(s) {
+        return String(s == null ? "" : s)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+      }
 
-/* ---------------- interacciones ---------------- */
-function tog(id){ open.has(id) ? open.delete(id) : open.add(id); render(); }
-function zoom(src){ $('#lbimg').src = src; $('#lb').classList.add('on'); }
-function toggleRetex(id){
-  const el = $('#retex-' + id); if (!el) return;
-  el.style.display = el.style.display === 'none' ? '' : 'none';
-  if (el.style.display === '') $('#retexp-' + id).focus();
-}
-async function retex(id){
-  const prompt = $('#retexp-' + id).value.trim();
-  if (!prompt) return toast('Describí el material');
-  if (!confirm('Esto crea una tarea de re-texturizado y consume créditos del generador. ¿Continuar?')) return;
-  const r = await fetch('/api/products/' + id + '/retexture', {method:'POST', body: JSON.stringify({prompt})});
-  const j = await r.json();
-  if (!r.ok) return toast('Error: ' + (j.error || r.status));
-  toast('En cola: ' + j.name); refresh();
-}
-async function retry(id){
-  await fetch('/api/products/' + id + '/retry', {method:'POST'});
-  toast('Reprocesando'); refresh();
-}
-async function del(id){
-  if (!confirm('¿Borrar este producto y todos sus archivos?')) return;
-  await fetch('/api/products/' + id, {method:'DELETE'});
-  open.delete(id); toast('Borrado'); refresh();
-}
-async function showLog(id){
-  const el = $('#log-' + id); if (!el) return;
-  if (el.style.display !== 'none'){ el.style.display = 'none'; return; }
-  el.textContent = await (await fetch('/api/products/' + id + '/log')).text();
-  el.style.display = '';
-  el.scrollTop = el.scrollHeight;
-}
+      /* ---------------- interacciones ---------------- */
+      function tog(id) {
+        open.has(id) ? open.delete(id) : open.add(id);
+        render();
+      }
+      function zoom(src) {
+        $("#lbimg").src = src;
+        $("#lb").classList.add("on");
+      }
+      function toggleRetex(id) {
+        const el = $("#retex-" + id);
+        if (!el) return;
+        el.style.display = el.style.display === "none" ? "" : "none";
+        if (el.style.display === "") $("#retexp-" + id).focus();
+      }
+      async function retex(id) {
+        const prompt = $("#retexp-" + id).value.trim();
+        if (!prompt) return toast("Describí el material");
+        if (
+          !confirm(
+            "Esto crea una tarea de re-texturizado y consume créditos del generador. ¿Continuar?",
+          )
+        )
+          return;
+        const r = await fetch("/api/products/" + id + "/retexture", {
+          method: "POST",
+          body: JSON.stringify({ prompt }),
+        });
+        const j = await r.json();
+        if (!r.ok) return toast("Error: " + (j.error || r.status));
+        toast("En cola: " + j.name);
+        refresh();
+      }
+      async function retry(id) {
+        await fetch("/api/products/" + id + "/retry", { method: "POST" });
+        toast("Reprocesando");
+        refresh();
+      }
+      async function del(id) {
+        if (!confirm("¿Borrar este producto y todos sus archivos?")) return;
+        await fetch("/api/products/" + id, { method: "DELETE" });
+        open.delete(id);
+        toast("Borrado");
+        refresh();
+      }
+      async function showLog(id) {
+        const el = $("#log-" + id);
+        if (!el) return;
+        if (el.style.display !== "none") {
+          el.style.display = "none";
+          return;
+        }
+        el.textContent = await (
+          await fetch("/api/products/" + id + "/log")
+        ).text();
+        el.style.display = "";
+        el.scrollTop = el.scrollHeight;
+      }
 
-/* ---------------- polling ---------------- */
-let last = '';
-async function refresh(){
-  try{
-    const j = await (await fetch('/api/products')).json();
-    products = j.products || [];
-    const sig = JSON.stringify(products.map(p => [p.id,p.status,p.progress,p.stage,!!p.metrics]));
-    if (sig !== last){ last = sig; render(); }
-  }catch(e){ /* servidor caido: reintenta */ }
-}
-setInterval(() => { if (products.some(p => ACTIVE.includes(p.status))) refresh(); }, 2000);
-setInterval(refresh, 10000);
+      /* ---------------- polling ---------------- */
+      let last = "";
+      async function refresh() {
+        try {
+          const j = await (await fetch("/api/products")).json();
+          products = j.products || [];
+          const sig = JSON.stringify(
+            products.map((p) => [
+              p.id,
+              p.status,
+              p.progress,
+              p.stage,
+              !!p.metrics,
+            ]),
+          );
+          if (sig !== last) {
+            last = sig;
+            render();
+          }
+        } catch (e) {
+          /* servidor caido: reintenta */
+        }
+      }
+      setInterval(() => {
+        if (products.some((p) => ACTIVE.includes(p.status))) refresh();
+      }, 2000);
+      setInterval(refresh, 10000);
 
-document.addEventListener('keydown', e => { if (e.key === 'Escape') $('#lb').classList.remove('on'); });
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") $("#lb").classList.remove("on");
+      });
 
-loadCfg(); refresh(); drawThumbs(); syncPoly(); loadBrands();
-</script>
-</body>
+      loadCfg();
+      routeFromHash();
+      refresh();
+      drawThumbs();
+      syncPoly();
+      loadBrands();
+    </script>
+  </body>
 </html>
