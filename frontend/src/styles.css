@@ -1,0 +1,66 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-bg: #0e1014;
+  --color-panel: #151921;
+  --color-panel-2: #1c212b;
+  --color-line: #262c38;
+  --color-fg: #e7ebf2;
+  --color-muted: #96a0b3;
+  --color-faint: #5f6879;
+  --color-accent: #5b9dff;
+  --color-accent-strong: #2d6fd6;
+  --color-ok: #38c172;
+  --color-warn: #e8a33d;
+  --color-fail: #ef5d5d;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-bg text-fg font-sans text-sm antialiased;
+  margin: 0;
+}
+
+::placeholder {
+  @apply text-faint opacity-100;
+}
+
+input:-webkit-autofill {
+  -webkit-text-fill-color: var(--color-fg);
+  -webkit-box-shadow: 0 0 0 1000px var(--color-bg) inset;
+  caret-color: var(--color-fg);
+}
+
+select option {
+  background: var(--color-panel);
+  color: var(--color-fg);
+}
+
+input[type='number']::-webkit-inner-spin-button,
+input[type='date']::-webkit-calendar-picker-indicator {
+  filter: invert(0.7);
+}
+
+:focus-visible {
+  @apply outline-2 outline-offset-2 outline-accent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

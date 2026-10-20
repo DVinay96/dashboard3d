@@ -1,100 +1,33 @@
-#!/usr/bin/env python3
-"""
-Catalogo de marcas y esquema de metadatos de producto.
+from __future__ import annotations
 
-Modelo (data/brands.json):
-
-  base_fields   campos comunes a TODAS las marcas (SKU, nombre, precio...)
-  brands[]      cada marca con:
-                  fields[]    campos propios, se suman a los base
-                  pipeline    overrides del pipeline (altura, budget, prompt...)
-
-Un campo es: {key, label, type, required, options, default, help}
-type: text | number | select | bool | date
-"""
-
-import json
-import os
 import re
-import unicodedata
-import threading
 import time
+import unicodedata
 import uuid
 
 FIELD_TYPES = ("text", "number", "select", "bool", "date")
 
-_lock = threading.RLock()
+DEFAULT_BASE_FIELDS = [
+    {"key": "sku", "label": "SKU", "type": "text", "required": True,
+     "options": [], "default": "", "help": "Código único del producto"},
+    {"key": "nombre_comercial", "label": "Nombre comercial", "type": "text",
+     "required": False, "options": [], "default": "", "help": ""},
+    {"key": "precio", "label": "Precio", "type": "number", "required": False,
+     "options": [], "default": "", "help": "En la moneda de la marca"},
+]
 
 
-# ---------------------------------------------------------------- semillas
-
-
-def default_catalog():
-    """Catalogo inicial: los campos base que aplican a cualquier mueble."""
-    return {
-        "base_fields": [
-            {"key": "sku", "label": "SKU", "type": "text", "required": True,
-             "options": [], "default": "", "help": "Codigo unico del producto"},
-            {"key": "nombre_comercial", "label": "Nombre comercial", "type": "text",
-             "required": False, "options": [], "default": "", "help": ""},
-            {"key": "precio", "label": "Precio", "type": "number", "required": False,
-             "options": [], "default": "", "help": "En la moneda de la marca"},
-        ],
-        "brands": [],
-        "updated_at": time.time(),
-    }
-
-
-# ------------------------------------------------------------ persistencia
-
-
-def catalog_path(data_dir):
-    return os.path.join(data_dir, "brands.json")
-
-
-def load_catalog(data_dir):
-    path = catalog_path(data_dir)
-    if not os.path.exists(path):
-        return save_catalog(data_dir, default_catalog())
-    try:
-        with open(path, "r", encoding="utf-8") as fh:
-            cat = json.load(fh)
-    except Exception:
-        return default_catalog()
-    cat.setdefault("base_fields", [])
-    cat.setdefault("brands", [])
-    return cat
-
-
-def save_catalog(data_dir, cat):
-    with _lock:
-        os.makedirs(data_dir, exist_ok=True)
-        cat["updated_at"] = time.time()
-        path = catalog_path(data_dir)
-        tmp = path + ".tmp"
-        with open(tmp, "w", encoding="utf-8") as fh:
-            json.dump(cat, fh, indent=2, ensure_ascii=False)
-        os.replace(tmp, path)
-    return cat
-
-
-# -------------------------------------------------------------- validacion
-
-
-class BrandError(Exception):
+class BrandError(ValueError):
     pass
 
 
 def slug_key(text):
-    """'Colección' -> 'coleccion': los acentos se transliteran, no se pierden."""
     norm = unicodedata.normalize("NFKD", text or "")
     ascii_only = "".join(c for c in norm if not unicodedata.combining(c))
-    s = re.sub(r"[^a-zA-Z0-9]+", "_", ascii_only).strip("_").lower()
-    return s[:40]
+    return re.sub(r"[^a-zA-Z0-9]+", "_", ascii_only).strip("_").lower()[:40]
 
 
 def clean_field(raw, used_keys):
-    """Normaliza un campo y verifica que la clave sea unica y utilizable."""
     label = (raw.get("label") or "").strip()
     if not label:
         raise BrandError("Cada campo necesita un nombre visible.")
@@ -152,7 +85,6 @@ def clean_brand(raw, cat, brand_id=None):
         if b["id"] != brand_id and b["name"].strip().lower() == name.lower():
             raise BrandError("Ya existe una marca llamada '%s'." % name)
 
-    # las claves base estan reservadas: un campo propio no puede pisarlas
     reserved = {f["key"] for f in cat.get("base_fields", [])}
     fields = clean_fields(raw.get("fields"), reserved)
 
@@ -181,9 +113,6 @@ def clean_brand(raw, cat, brand_id=None):
     }
 
 
-# ------------------------------------------------------------------ acceso
-
-
 def get_brand(cat, brand_id):
     for b in cat["brands"]:
         if b["id"] == brand_id:
@@ -192,7 +121,6 @@ def get_brand(cat, brand_id):
 
 
 def fields_for(cat, brand_id):
-    """Campos base + campos propios de la marca, en ese orden."""
     out = [dict(f, scope="base") for f in cat.get("base_fields", [])]
     brand = get_brand(cat, brand_id)
     if brand:
@@ -212,13 +140,12 @@ def coerce_value(field, value):
         try:
             n = float(value)
         except (TypeError, ValueError):
-            raise BrandError("'%s' espera un numero." % field["label"])
+            raise BrandError("'%s' espera un número." % field["label"])
         return int(n) if n == int(n) else n
     return "" if value is None else str(value).strip()
 
 
 def build_metadata(cat, brand_id, raw_values):
-    """Aplica defaults, convierte tipos y verifica los campos obligatorios."""
     values = {}
     missing = []
     for f in fields_for(cat, brand_id):
@@ -237,19 +164,15 @@ def build_metadata(cat, brand_id, raw_values):
 
 
 def describe(cat, brand_id, metadata):
-    """Metadatos legibles para el sidecar JSON y para la interfaz."""
     brand = get_brand(cat, brand_id)
-    fields = []
-    for f in fields_for(cat, brand_id):
-        fields.append({
+    fields = [
+        {
             "key": f["key"],
             "label": f["label"],
             "type": f["type"],
             "scope": f.get("scope", "base"),
             "value": (metadata or {}).get(f["key"], ""),
-        })
-    return {
-        "brand": brand["name"] if brand else "",
-        "brand_id": brand_id or "",
-        "fields": fields,
-    }
+        }
+        for f in fields_for(cat, brand_id)
+    ]
+    return {"brand": brand["name"] if brand else "", "brand_id": brand_id or "", "fields": fields}

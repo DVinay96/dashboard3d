@@ -1,0 +1,10 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "ignorePatterns": ["dist", "src/routeTree.gen.ts", "src/api/schema.d.ts"],
+  "overrides": [
+    {
+      "files": ["src/routes/**", "src/lib/session.tsx", "src/components/products/dropzone.tsx", "src/components/brands/fields-editor.tsx"],
+      "rules": { "react/only-export-components": "off" }
+    }
+  ]
+}

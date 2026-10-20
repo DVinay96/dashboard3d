@@ -1,14 +1,4 @@
 #!/usr/bin/env python3
-"""
-Acondicionado + QA de un modelo, ejecutado dentro de Blender headless.
-
-  blender -b --factory-startup -noaudio --python qa_blender.py -- '<json>'
-
-json = {src, out_dir, qa_dir, slug, target_height_m, tri_budget, lightmap_uv, export_fbx}
-
-Escribe <qa_dir>/metrics.json con metricas antes/despues y la lista de checks,
-renders de 4 vistas + wireframe + layout de UVs, y exporta GLB/FBX a <out_dir>.
-"""
 
 import json
 import math
@@ -23,9 +13,6 @@ try:
     import numpy as np
 except Exception:
     np = None
-
-
-# ---------------------------------------------------------------- utilidades
 
 
 def log(msg):
@@ -57,7 +44,6 @@ def select_only(objs):
 
 
 def measure(objs, label):
-    """Metricas agregadas de una lista de objetos mesh."""
     m = {
         "label": label,
         "objects": len(objs),
@@ -88,7 +74,7 @@ def measure(objs, label):
                 m["materials"].append(mat.name)
 
         sx, sy, sz = o.matrix_world.to_scale()
-        area_scale = abs(sx * sy)  # aproximacion suficiente para escala uniforme
+        area_scale = abs(sx * sy)
         for p in me.polygons:
             n = len(p.vertices)
             if n == 3:
@@ -106,7 +92,6 @@ def measure(objs, label):
         m["boundary_edges"] += sum(1 for e in bm.edges if e.is_boundary)
         m["non_manifold_edges"] += sum(1 for e in bm.edges if not e.is_manifold)
 
-        # partes sueltas
         seen = set()
         for v in bm.verts:
             if v.index in seen:
@@ -122,7 +107,6 @@ def measure(objs, label):
                         seen.add(ov.index)
                         stack.append(ov)
 
-        # calidad de triangulo (1 = equilatero)
         for f in bm.faces:
             if len(f.verts) != 3:
                 continue
@@ -150,12 +134,6 @@ def measure(objs, label):
 
 
 def mirror_symmetry(objs, samples=20000):
-    """Simetria geometrica real respecto del plano YZ que pasa por el centro.
-
-    Espeja cada vertice y mide la distancia al vecino mas cercano del original.
-    Devuelve el error medio normalizado por el tamano del objeto (0 = simetrico).
-    Es el check que detecta la cara que la IA invento sin haberla visto.
-    """
     pts = []
     for o in objs:
         mw = o.matrix_world
@@ -196,7 +174,6 @@ def mirror_symmetry(objs, samples=20000):
 
 
 def uv_stats(objs):
-    """Aprovechamiento del espacio UV y caras invertidas."""
     tot_uv = 0.0
     flipped = 0
     umin = vmin = 1e9
@@ -232,9 +209,6 @@ def uv_stats(objs):
     }
 
 
-# --------------------------------------------------------------------- bake
-
-
 def has_textures(objs):
     for o in objs:
         for m in o.data.materials:
@@ -244,7 +218,6 @@ def has_textures(objs):
 
 
 def _principled_and_output(mat):
-    """Busca los nodos en el momento: no guardar referencias entre cambios del arbol."""
     if not (mat and mat.use_nodes):
         return None, None
     nodes = mat.node_tree.nodes
@@ -265,16 +238,6 @@ def _bake_image(name, res, non_color):
 
 
 def bake_high_to_low(highs, low, cfg):
-    """Transfiere las texturas del modelo original (high) al decimado (low).
-
-    La textura de Meshy esta pintada para SUS UVs. Si el decimate obliga a
-    rehacer las UVs, reusar la imagen original produce un mosaico sin sentido:
-    cada cara lee una zona equivocada. Lo correcto es hornear de nuevo.
-
-    Base color, roughness y metallic se hornean con el truco de emision (valor
-    exacto, sin iluminacion); la normal se hornea en espacio tangente e incluye
-    el normal map del original, asi se conserva el detalle que quito el decimate.
-    """
     sc = bpy.context.scene
     sc.render.engine = "CYCLES"
     try:
@@ -290,7 +253,6 @@ def bake_high_to_low(highs, low, cfg):
     try:
         return _bake(highs, low, cfg, sc)
     finally:
-        # si queda en Standard, los renders con textura salen quemados
         sc.view_settings.view_transform = prev_view
 
 
@@ -301,7 +263,6 @@ def _bake(highs, low, cfg, sc):
     lo, hi = world_bbox([low])
     size = max(max(hi[i] - lo[i] for i in range(3)), 1e-3)
 
-    # material destino, propio del low (no compartido con el high)
     low.data.materials.clear()
     mat = bpy.data.materials.new(slug + "_baked")
     mat.use_nodes = True
@@ -345,7 +306,6 @@ def _bake(highs, low, cfg, sc):
         img = _bake_image("%s_%s" % (slug, key), res, non_color)
         node_name = add_target(img)
 
-        # truco de emision: el canal pedido va directo a la salida del material
         patched = []
         for m in high_mats:
             mnt = m.node_tree
@@ -391,7 +351,6 @@ def _bake(highs, low, cfg, sc):
     baked["normal"] = (img, node_name)
     log("horneado normal %dpx" % res)
 
-    # guardar y conectar el material final
     files = []
     for key, (img, _) in baked.items():
         path = os.path.join(out_dir, "%s_%s.png" % (slug, key))
@@ -413,14 +372,9 @@ def _bake(highs, low, cfg, sc):
     return files
 
 
-# ------------------------------------------------------------- acondicionado
-
-
 def condition(objs, cfg):
-    """Escala real, pivote en la base, budget de poligonos, UVs, smooth."""
     actions = []
 
-    # 1. aplicar transformaciones heredadas del import
     select_only(objs)
     try:
         bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
@@ -428,7 +382,6 @@ def condition(objs, cfg):
     except Exception as e:
         log("transform_apply fallo: %s" % e)
 
-    # 2. escala a altura real
     target_h = float(cfg.get("target_height_m") or 0)
     lo, hi = world_bbox(objs)
     cur_h = hi.z - lo.z
@@ -442,7 +395,6 @@ def condition(objs, cfg):
             bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
             actions.append("Escalado x%.4f -> altura %.3f m" % (f, target_h))
 
-    # 3. pivote: centro en XY, base en Z=0
     lo, hi = world_bbox(objs)
     off = mathutils.Vector((-(lo.x + hi.x) / 2.0, -(lo.y + hi.y) / 2.0, -lo.z))
     if off.length > 1e-5:
@@ -453,13 +405,6 @@ def condition(objs, cfg):
         bpy.ops.object.transform_apply(location=True, rotation=False, scale=False)
         actions.append("Pivote movido a base-centro (offset %.3f m)" % off.length)
 
-    # 4. budget de triangulos
-    #    OJO: el collapse decimate arrastra las UVs y genera islas superpuestas
-    #    y caras invertidas. Si el modelo YA tenia UVs y lo decimamos fuerte,
-    #    hay que rehacer el unwrap; conservarlas da un layout roto.
-    #    Si ademas tiene TEXTURAS, rehacer las UVs sin volver a hornear rompe la
-    #    textura (mosaico). En ese caso se guarda una copia del original y se
-    #    hornea high -> low despues del unwrap.
     budget = int(cfg.get("tri_budget") or 0)
     had_uv = [o for o in objs if o.data.uv_layers]
     textured = has_textures(objs)
@@ -501,7 +446,6 @@ def condition(objs, cfg):
             elif textured:
                 actions.append("AVISO: textura sin re-hornear; las UVs quedan deformadas por el decimate")
 
-    # 4b. rehacer UVs arruinadas por el decimate
     if needs_reuv:
         for o in needs_reuv:
             while len(o.data.uv_layers) > 0:
@@ -509,7 +453,6 @@ def condition(objs, cfg):
         state["uv_regenerated"] = True
         actions.append("UVs descartadas tras el decimate (el collapse las deja superpuestas)")
 
-    # 5. UV principal (con mas margen entre islas si se va a hornear)
     missing = [o for o in objs if not o.data.uv_layers]
     if missing:
         select_only(missing)
@@ -529,7 +472,6 @@ def condition(objs, cfg):
             except Exception:
                 pass
 
-    # 5b. hornear texturas del original sobre las UVs nuevas
     if highs:
         try:
             files = bake_high_to_low(highs, objs[0], cfg)
@@ -546,7 +488,6 @@ def condition(objs, cfg):
                 if me.users == 0:
                     bpy.data.meshes.remove(me)
 
-    # 6. segundo canal UV para lightmaps de Unity
     if cfg.get("lightmap_uv"):
         made = 0
         for o in objs:
@@ -560,7 +501,6 @@ def condition(objs, cfg):
                 bpy.ops.mesh.select_all(action="SELECT")
                 bpy.ops.uv.lightmap_pack(PREF_MARGIN_DIV=0.2)
                 bpy.ops.object.mode_set(mode="OBJECT")
-                # la textura debe seguir leyendo del canal 0, no del lightmap
                 o.data.uv_layers.active_index = 0
                 o.data.uv_layers[0].active_render = True
                 made += 1
@@ -573,7 +513,6 @@ def condition(objs, cfg):
         if made:
             actions.append("Canal UV2 de lightmap generado en %d objeto/s" % made)
 
-    # 7. sombreado suave por angulo
     select_only(objs)
     try:
         bpy.ops.object.shade_smooth_by_angle(angle=math.radians(40))
@@ -586,9 +525,6 @@ def condition(objs, cfg):
             log("shade smooth fallo: %s" % e)
 
     return actions
-
-
-# -------------------------------------------------------------------- checks
 
 
 def build_checks(after, uvs, cfg, before=None):
@@ -617,8 +553,6 @@ def build_checks(after, uvs, cfg, before=None):
             add("warn", "uv2", "Sin segundo canal UV: Unity va a tener que generarlo al importar")
 
     if uvs:
-        # >100% de area acumulada implica islas superpuestas: dos zonas del
-        # modelo comparten el mismo texel y la textura se va a ver repetida.
         if uvs["packing_pct"] > 101:
             add("fail", "uv_overlap", "Islas UV superpuestas (area acumulada %.1f%%): la textura se va a repetir" % uvs["packing_pct"])
         elif uvs["packing_pct"] < 25:
@@ -657,12 +591,6 @@ def build_checks(after, uvs, cfg, before=None):
     else:
         add("pass", "pivot_xy", "Pivote centrado en XY")
 
-    # simetria geometrica real (no del bounding box: centrar el pivote lo
-    # vuelve simetrico por construccion y el check quedaria siempre en verde)
-    #    El promedio se diluye porque la mayor parte del objeto suele ser
-    #    simetrica: el pico es la senal que delata la zona alucinada.
-    #    Se mide sobre el modelo ORIGINAL: el decimate introduce ruido que
-    #    dispara falsos positivos (colapsa vertices distinto en cada lado).
     sym = (before or {}).get("symmetry") or after.get("symmetry")
     if sym:
         e, mx = sym["mean_error_pct"], sym["max_error_pct"]
@@ -699,9 +627,6 @@ def build_checks(after, uvs, cfg, before=None):
         add("pass", "materials", "%d material/es: %s" % (len(after["materials"]), ", ".join(after["materials"][:6])))
 
     return c
-
-
-# ------------------------------------------------------------------- renders
 
 
 def setup_render(objs, res=(560, 680)):
@@ -763,7 +688,6 @@ def render_views(objs, qa_dir, wire=False, textured=False):
     sc = bpy.context.scene
     made = []
 
-    # render con los materiales reales: el clay no muestra problemas de UV/textura
     if textured:
         for name in ("q34", "front"):
             d = mathutils.Vector(VIEWS[name]).normalized() * size * 2.55
@@ -793,15 +717,12 @@ def render_views(objs, qa_dir, wire=False, textured=False):
 
     if wire:
         try:
-            # show_wire es solo overlay de viewport y no sale en el render:
-            # hay que usar el nodo Wireframe dentro del material.
             wm = bpy.data.materials.new("qa_wire")
             wm.use_nodes = True
             nt = wm.node_tree
             for n in list(nt.nodes):
                 if n.bl_idname != "ShaderNodeOutputMaterial":
                     nt.nodes.remove(n)
-            # re-buscar DESPUES de borrar: la referencia previa queda colgada
             out = next(n for n in nt.nodes if n.bl_idname == "ShaderNodeOutputMaterial")
             wire_n = nt.nodes.new("ShaderNodeWireframe")
             wire_n.use_pixel_size = True
@@ -831,13 +752,11 @@ def render_views(objs, qa_dir, wire=False, textured=False):
 
 
 def render_uv_layout(objs, qa_dir, size=640):
-    """Rasteriza las aristas de UV a un PNG, sin dependencias externas."""
     if np is None:
         return None
     img = np.zeros((size, size, 4), dtype=np.float32)
     img[:, :, 0:3] = 0.05
     img[:, :, 3] = 1.0
-    # grilla
     for g in range(1, 4):
         p = int(size * g / 4.0)
         img[p, :, 0:3] = 0.13
@@ -883,9 +802,6 @@ def render_uv_layout(objs, qa_dir, size=640):
     return "uv.png"
 
 
-# ---------------------------------------------------------------------- main
-
-
 def main():
     argv = sys.argv[sys.argv.index("--") + 1:]
     cfg = json.loads(argv[0])
@@ -929,9 +845,6 @@ def main():
     after["symmetry"] = mirror_symmetry(objs)
     checks = build_checks(after, after["uv_stats"], cfg, before)
 
-    # ---- texturas empaquetadas dentro del GLB -> archivos reales ----
-    #      El FBX exporter (path_mode=COPY) no puede copiar imagenes empaquetadas
-    #      y Unity recibiria un FBX sin texturas.
     for o in objs:
         for m in o.data.materials:
             if not (m and m.use_nodes):
@@ -952,7 +865,6 @@ def main():
                     except Exception as e:
                         log("no se pudo guardar la textura %s: %s" % (img.name, e))
 
-    # ---- export antes de reemplazar materiales por clay ----
     exported = {}
     select_only(objs)
     glb_out = os.path.join(out_dir, slug + ".glb")
@@ -979,7 +891,6 @@ def main():
         except Exception as e:
             log("export fbx fallo: %s" % e)
 
-    # ---- renders (destruyen materiales, van al final) ----
     uv_png = render_uv_layout(objs, qa_dir)
     st = cfg.get("_state") or {}
     renders = render_views(objs, qa_dir, wire=True, textured=has_textures(objs))
